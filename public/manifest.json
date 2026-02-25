@@ -1,0 +1,33 @@
+{
+    "manifest_version": 3,
+    "name": "RoboKJ",
+    "version": "1.0.0",
+    "description": "A React-based extension for personalized automation.",
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "action": {
+        "default_popup": "src/popup/index.html",
+        "default_title": "RoboKJ"
+    },
+    "background": {
+        "service_worker": "src/background/index.ts",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "js": [
+                "src/content/index.ts"
+            ],
+            "matches": [
+                "https://w2g.tv/en/room/*"
+            ]
+        }
+    ],
+    "permissions": [
+        "storage",
+        "tabs"
+    ]
+}

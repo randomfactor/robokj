@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ListItem from '../components/ListItem';
 
 function App() {
     const [inviteLink, setInviteLink] = useState('');
     const [status, setStatus] = useState('');
+
+    // Load saved link on popup open
+    useEffect(() => {
+        if (chrome && chrome.storage) {
+            chrome.storage.local.get(['robokj_inviteLink'], (result: { [key: string]: string }) => {
+                if (result.robokj_inviteLink) {
+                    setInviteLink(result.robokj_inviteLink);
+                }
+            });
+        }
+    }, []);
 
     const handleSetStreamkey = () => {
         // Extract the streamkey from the invite link
@@ -14,6 +25,11 @@ function App() {
         if (!streamkey) {
             setStatus('Please enter a valid link or key.');
             return;
+        }
+
+        // Save the raw link text for next time
+        if (chrome && chrome.storage) {
+            chrome.storage.local.set({ robokj_inviteLink: inviteLink });
         }
 
         if (chrome && chrome.runtime && chrome.runtime.sendMessage) {

@@ -19,12 +19,15 @@
   "content_scripts": [
     {
       "js": [
-        "assets/index.ts-D2Bbuvmt.js"
+        "assets/index.ts-BVexyHX_.js"
       ],
       "matches": [
-        "<all_urls>"
+        "https://w2g.tv/en/room/*"
       ]
     }
+  ],
+  "host_permissions": [
+    "https://api.w2g.tv/*"
   ],
   "permissions": [
     "storage",
@@ -33,10 +36,10 @@
   "web_accessible_resources": [
     {
       "matches": [
-        "<all_urls>"
+        "https://w2g.tv/*"
       ],
       "resources": [
-        "assets/index.ts-D2Bbuvmt.js"
+        "assets/index.ts-BVexyHX_.js"
       ],
       "use_dynamic_url": false
     }

@@ -26,6 +26,9 @@
             ]
         }
     ],
+    "host_permissions": [
+        "https://api.w2g.tv/*"
+    ],
     "permissions": [
         "storage",
         "tabs"

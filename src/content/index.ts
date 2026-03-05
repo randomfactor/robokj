@@ -32,9 +32,8 @@ function processMessageElement(element: Element) {
         const message: MessageAction = {
             type: 'REGISTER_SINGER',
             payload: {
-                id: null,
                 w2gId,
-                name: singerName
+                stageName: singerName
             }
         };
 
@@ -84,8 +83,6 @@ function processMessageElement(element: Element) {
             type: 'ADD_SONG_REQUEST',
             w2gId: w2gId,
             payload: {
-                id: Date.now().toString(36), // Temp random ID
-                w2gId: w2gId,
                 title: songTitle,
                 url: songUrl
             }
@@ -161,9 +158,29 @@ function startObservingChat() {
     observer.observe(chatContainer, { childList: true, subtree: true, characterData: true });
 }
 
+// Function to emit a message into the chat container
+export function sendToAll(message: string) {
+    const chatInput = document.getElementById('w2g-chat-input') as HTMLInputElement | HTMLTextAreaElement;
+    if (chatInput) {
+        chatInput.value = message;
+        // Dispatch an 'input' event so the framework recognizes the new text
+        chatInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        // Option A: Trigger the custom 'w2gsubmit' event directly on the textarea
+        chatInput.dispatchEvent(new Event('w2gsubmit', { bubbles: true, cancelable: true }));
+    }
+}
+
 // Initialize when the DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startObservingChat);
+    document.addEventListener('DOMContentLoaded', () => {
+        startObservingChat();
+        setTimeout(() => sendToAll('It is working!'), 5000);
+    });
 } else {
     startObservingChat();
+    setTimeout(() => sendToAll('It is working!'), 5000);
 }
+
+/*
+w2g-chat-input
+*/

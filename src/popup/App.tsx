@@ -12,6 +12,7 @@ function App() {
     });
     const [showInfoStatus, setShowInfoStatus] = useState('');
     const [activeSingers, setActiveSingers] = useState<any[]>([]);
+    const [ignoredSingers, setIgnoredSingers] = useState<any[]>([]);
     const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
@@ -32,13 +33,20 @@ function App() {
                     setShowInfo(response.data);
                 }
             });
+        }
+    }, []);
+
+    const refreshRoster = () => {
+        if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
             chrome.runtime.sendMessage({ type: 'GET_ROSTER' }, (response) => {
                 if (response && response.success && response.data) {
-                    const singers = response.data.filter((s: any) => s.status === 'active');
-                    setActiveSingers(singers);
+                    const active = response.data.filter((s: any) => s.status === 'active');
+                    const ignored = response.data.filter((s: any) => s.status === 'ignored');
+                    setActiveSingers(active);
+                    setIgnoredSingers(ignored);
 
                     // Fetch request counts for each active singer
-                    singers.forEach((s: any) => {
+                    active.forEach((s: any) => {
                         if (chrome.runtime.sendMessage) {
                             chrome.runtime.sendMessage({ type: 'GET_REQUEST_LIST', stageName: s.singer.stageName }, (reqResponse) => {
                                 if (reqResponse && reqResponse.success && reqResponse.data) {
@@ -55,6 +63,10 @@ function App() {
                 }
             });
         }
+    };
+
+    useEffect(() => {
+        refreshRoster();
     }, []);
 
     const handleSaveShowInfo = () => {
@@ -135,8 +147,20 @@ function App() {
         }
     };
 
+    const handleAction = (type: string, payload?: any) => {
+        if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage({ type, ...payload }, (response) => {
+                if (response && response.success) {
+                    refreshRoster();
+                } else {
+                    console.error(`Failed action ${type}:`, response?.error);
+                }
+            });
+        }
+    };
+
     return (
-        <div className="font-sans w-[600px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244] max-h-[600px] overflow-y-auto">
+        <div className="font-sans w-max min-w-[700px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244] max-h-[600px] overflow-y-auto">
             <h1 className="text-2xl mt-0 text-[#89b4fa] font-bold border-b-2 border-[#313244] pb-3 mb-5 tracking-wide">
                 RoboKJ
             </h1>
@@ -243,25 +267,85 @@ function App() {
                     </div>
                 </div>
 
-                {/* Right Column - Active Singers */}
+                {/* Center Column - Controls */}
                 <div className="flex-1">
-                    <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] h-full">
+                    <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] h-full flex flex-col gap-4">
+                        <h2 className="text-sm font-semibold text-[#89b4fa] mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#89b4fa]"></span> Manual Controls
+                        </h2>
+
+                        <button
+                            onClick={() => handleAction('NEXT_SINGER')}
+                            title="Skip to the next singer in the roster"
+                            className="w-full bg-[#a6e3a1] text-[#11111b] font-bold py-4 px-4 rounded-lg hover:bg-[#94e2d5] hover:shadow-[0_0_15px_rgba(166,227,161,0.4)] transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                            Next Singer
+                        </button>
+
+                        <button
+                            onClick={() => handleAction('BUMP_SINGER')}
+                            title="Bump the current singer back one spot"
+                            className="w-full bg-[#fab387] text-[#11111b] font-bold py-4 px-4 rounded-lg hover:bg-[#f9e2af] hover:shadow-[0_0_15px_rgba(250,179,135,0.4)] transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="m17 22-5-5-5 5"></path><path d="M16 12H8"></path><path d="m13 7-5-5-5 5"></path><path d="M22 17h-8"></path><path d="m17 7-5-5-5 5"></path></svg>
+                            Bump Singer
+                        </button>
+
+                        <button
+                            onClick={() => handleAction('RESTART_VIDEO')}
+                            title="Replay the current video from the beginning"
+                            className="w-full bg-[#89b4fa] text-[#11111b] font-bold py-4 px-4 rounded-lg hover:bg-[#b4befe] hover:shadow-[0_0_15px_rgba(137,180,250,0.4)] transition-all text-sm active:scale-[0.98] flex items-center justify-center gap-2 mt-auto"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                            Restart Video
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right Column - Active & Ignored Singers */}
+                <div className="flex-1 flex flex-col gap-4">
+                    <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] flex-1">
                         <h2 className="text-sm font-semibold text-[#cba6f7] mb-3 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#cba6f7]"></span> Active Singers
                         </h2>
                         {activeSingers.length > 0 ? (
-                            <ul className="list-none p-0 m-0 space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                            <ul className="list-none p-0 m-0 space-y-2 max-h-[300px] overflow-y-auto pr-2">
                                 {activeSingers.map((status, index) => (
                                     <ListItem
                                         key={index}
                                         name={status.singer.stageName}
                                         requestCount={requestCounts[status.singer.stageName] || 0}
                                         onRemove={() => handleRemoveSinger(status.singer.stageName)}
+                                        isPerforming={index === 0}
                                     />
                                 ))}
                             </ul>
                         ) : (
                             <p className="text-xs text-[#a6adc8] italic text-center mt-4">No active singers.</p>
+                        )}
+                    </div>
+
+                    <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] flex-1 opacity-70">
+                        <h2 className="text-sm font-semibold text-[#a6adc8] mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#a6adc8]"></span> Ignored Singers
+                        </h2>
+                        {ignoredSingers.length > 0 ? (
+                            <ul className="list-none p-0 m-0 space-y-2 max-h-[150px] overflow-y-auto pr-2">
+                                {ignoredSingers.map((status, index) => (
+                                    <li key={index} className="flex justify-between items-center p-2.5 bg-[#313244] rounded-md transition duration-200">
+                                        <span className="flex-1 text-sm text-[#a6adc8]">{status.singer.stageName}</span>
+                                        <button
+                                            onClick={() => handleAction('REACTIVATE_SINGER', { stageName: status.singer.stageName })}
+                                            className="text-xs bg-[#a6e3a1] text-[#11111b] font-bold px-2 py-1 rounded hover:bg-[#94e2d5] transition-all"
+                                        >
+                                            Reactivate
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-xs text-[#6c7086] italic text-center mt-2">None</p>
                         )}
                     </div>
                 </div>

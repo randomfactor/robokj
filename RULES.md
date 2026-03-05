@@ -12,11 +12,11 @@
 
 - The singer at the top of the roster is currently performing.
 
-- When the current performer has completed their performance, the next singer on the roster should be moved to the top of the roster and begin their performance. Also, the singer that has finished is added to the end of the roster. Also, the singer that has finished should have the index to their next request incremented by 1.
+- When the current performer has completed their performance, the next singer on the roster should be moved to the top of the roster and begin their performance. Also, the singer that has finished is added to the end of the roster and their bump count is reset to 0. Also, the singer that has finished should have the index to their next request incremented by 1.
 
-- If the next singer has no songs left in their request list, they should be removed from the roster and the next singer should be moved to the top of the roster and begin their performance. This should continue until a singer is found that has songs left in their request list.
+- If the next singer has no songs left in their request list, their status should be changed to 'ignored' and the next singer should be moved to the top of the roster and begin their performance. This should continue until a singer is found that has songs left in their request list.
 
-- If the roster is empty, RoboKJ should respond with a message to the w2g chat window indicating that there are no singers in the roster.
+- If the roster is empty of 'active' singers, RoboKJ should respond with a message to the w2g chat window indicating that there are no active singers in the roster.
 
 - If a singer attempts to register themselves and they are already in the roster, RoboKJ should respond with a message to the w2g chat window indicating that the singer is already in the roster. The message should give both the stage name and the w2gId of the registered singer.
 

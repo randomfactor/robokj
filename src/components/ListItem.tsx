@@ -1,7 +1,10 @@
-export default function ListItem({ name, requestCount, onRemove }: { name: string, requestCount?: number, onRemove?: () => void }) {
+export default function ListItem({ name, requestCount, onRemove, isPerforming }: { name: string, requestCount?: number, onRemove?: () => void, isPerforming?: boolean }) {
     return (
-        <li className="flex justify-between items-center p-2.5 bg-[#313244] rounded-md transition duration-200 hover:bg-[#45475a] hover:translate-x-1 cursor-pointer group">
-            <span className="flex-1">{name}</span>
+        <li className={`flex justify-between items-center p-2.5 bg-[#313244] rounded-md transition duration-200 hover:bg-[#45475a] hover:translate-x-1 cursor-pointer group ${isPerforming ? 'border-l-4 border-[#a6e3a1] bg-[#45475a]' : ''}`}>
+            <span className={`flex-1 flex items-center gap-2 ${isPerforming ? 'font-bold text-[#a6e3a1]' : ''}`}>
+                {isPerforming && <span title="Currently Performing">🎤</span>}
+                {name}
+            </span>
             <div className="flex items-center gap-2">
                 {requestCount !== undefined && (
                     <span className={`font-bold text-xs bg-[#181825] px-2 py-0.5 rounded-full ${requestCount === 0 ? 'text-[#f38ba8]' : 'text-[#a6adc8]'}`}>

@@ -47,6 +47,10 @@ export type MessageAction =
     | { type: 'GET_ROSTER' }
     | { type: 'GET_REQUEST_LIST'; stageName: string }
     | { type: 'REMOVE_SINGER'; stageName: string }
+    | { type: 'REACTIVATE_SINGER'; stageName: string }
+    | { type: 'NEXT_SINGER' }
+    | { type: 'BUMP_SINGER' }
+    | { type: 'RESTART_VIDEO' }
     | { type: 'SELF_DESTRUCT' };
 
 export interface MessageResponse {

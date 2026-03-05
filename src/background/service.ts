@@ -1,5 +1,5 @@
 import { KSinger, MessageAction, MessageResponse, KRoster, KSingerStatus, KSongRequests } from '../types';
-import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKShow, setKShow } from './db';
+import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKShow, setKShow, clearAllData } from './db';
 
 // To ease testing of expected asynchronous operations
 export interface BackgroundServiceOptions {
@@ -47,8 +47,66 @@ export class BackgroundService {
             this._handleGetRoster(respond);
             return true;
         }
+        if (message.type === 'GET_REQUEST_LIST') {
+            this._handleGetRequestList(message.stageName, respond);
+            return true;
+        }
+        if (message.type === 'REMOVE_SINGER') {
+            this._handleRemoveSinger(message.stageName, respond);
+            return true;
+        }
+        if (message.type === 'SELF_DESTRUCT') {
+            this._handleSelfDestruct(respond);
+            return true;
+        }
 
         return true;
+    }
+
+    private async _handleRemoveSinger(stageName: string, sendResponse: (response: MessageResponse) => void) {
+        try {
+            const roster = await getKRoster();
+            if (!roster) {
+                sendResponse({ success: false, error: 'No roster found' });
+                return;
+            }
+
+            const singerStatus = roster.singers.find(s => s.singer.stageName === stageName);
+
+            if (!singerStatus) {
+                sendResponse({ success: false, error: 'Singer not found in roster' });
+                return;
+            }
+
+            singerStatus.status = 'ignored';
+            await setKRoster(roster);
+            console.log(`RoboKJ: Successfully set ${stageName} status to 'ignored'.`);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.error(`RoboKJ: Database error during REMOVE_SINGER for ${stageName}:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleGetRequestList(stageName: string, sendResponse: (response: MessageResponse) => void) {
+        try {
+            const requests = await getKSongRequests(stageName);
+            sendResponse({ success: true, data: requests || null });
+        } catch (error) {
+            console.error(`RoboKJ: Database error during GET_REQUEST_LIST for ${stageName}:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleSelfDestruct(sendResponse: (response: MessageResponse) => void) {
+        try {
+            await clearAllData();
+            console.log('RoboKJ: All IndexedDB data cleared via SELF_DESTRUCT');
+            sendResponse({ success: true });
+        } catch (error) {
+            console.error('RoboKJ: Database error during SELF_DESTRUCT:', error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
     }
 
     private async _handleGetRoster(sendResponse: (response: MessageResponse) => void) {
@@ -124,10 +182,19 @@ export class BackgroundService {
 
             if (existingSingerStatus) {
                 // Conflict
-                sendResponse({
-                    success: false,
-                    error: `Singer with w2gId ${existingSingerStatus.singer.w2gId} or stageName "${existingSingerStatus.singer.stageName}" already exists.`,
-                });
+                if (existingSingerStatus.status === 'ignored') {
+                    sendResponse({
+                        success: false,
+                        error: 'ignored',
+                        data: { stageName: existingSingerStatus.singer.stageName }
+                    });
+                } else {
+                    sendResponse({
+                        success: false,
+                        error: 'active',
+                        data: { w2gId: existingSingerStatus.singer.w2gId, stageName: existingSingerStatus.singer.stageName }
+                    });
+                }
                 return;
             }
 
@@ -172,54 +239,43 @@ export class BackgroundService {
                 requests: []
             };
 
+            // Calculate pending requests
+            const pendingRequests = requests.requests.length - requests.nextIndex;
+
+            if (pendingRequests >= 5) {
+                console.warn(`RoboKJ: Singer ${stageName} has reached the 5 request limit.`);
+                sendResponse({ success: false, error: 'limit_reached', data: { stageName } });
+                return;
+            }
+
+            // Global duplicate check across all singers (past and present queue)
+            let isDuplicate = false;
+            for (const rosterSinger of roster.singers) {
+                const singerRequests = await getKSongRequests(rosterSinger.singer.stageName);
+                if (singerRequests && singerRequests.requests.some(req => req.url === payload.url)) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+
+            if (isDuplicate) {
+                console.warn(`RoboKJ: Song ${payload.url} is already requested/performed in this show.`);
+                sendResponse({ success: false, error: 'duplicate', data: { stageName, title: payload.title } });
+                return;
+            }
+
             // Add the new request
             requests.requests.push(payload);
             await setKSongRequests(stageName, requests);
 
-            console.log(`RoboKJ: Saved song request for ${stageName}. Total requests: ${requests.requests.length}`);
+            console.log(`RoboKJ: Saved song request for ${stageName}. Pending requests: ${pendingRequests + 1}`);
 
-            const show = await getKShow();
-            const streamKey = show?.streamKey;
-
-            if (!streamKey) {
-                console.warn('RoboKJ: No streamkey available; cannot update room.');
-                sendResponse({ success: false, error: 'No streamkey associated with this session. Request saved locally.' });
-                return;
-            }
-
-            const apiKey = import.meta.env.VITE_W2G_API_KEY;
-            if (!apiKey) {
-                console.warn('RoboKJ: VITE_W2G_API_KEY is not configured in .env.local');
-                sendResponse({ success: false, error: 'Missing API key configuration.' });
-                return;
-            }
-
-            const apiUrl = `https://api.w2g.tv/rooms/${streamKey}/sync_update`;
-            const res = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    w2g_api_key: apiKey,
-                    item_url: payload.url
-                })
-            });
-
-            if (!res.ok) {
-                throw new Error(`API returned status: ${res.status}`);
-            }
-
-            const text = await res.text();
-            const data = text ? JSON.parse(text) : { success: true };
-
-            console.log('RoboKJ: Successfully played song via W2G API!', data);
-            sendResponse({ success: true, data });
+            // Just return success. We no longer auto-play it here.
+            sendResponse({ success: true, data: { stageName, title: payload.title, count: pendingRequests + 1 } });
 
         } catch (error: any) {
             console.error('RoboKJ: Error handling song request:', error);
-            sendResponse({ success: false, error: error.toString() });
+            sendResponse({ success: false, error: 'Database error' });
         }
     }
 }

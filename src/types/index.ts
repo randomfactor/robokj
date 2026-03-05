@@ -44,7 +44,10 @@ export type MessageAction =
     | { type: 'PERFORM_ACTION'; data: string }
     | { type: 'GET_SHOW_INFO' }
     | { type: 'SET_SHOW_INFO'; payload: Partial<KShow> }
-    | { type: 'GET_ROSTER' };
+    | { type: 'GET_ROSTER' }
+    | { type: 'GET_REQUEST_LIST'; stageName: string }
+    | { type: 'REMOVE_SINGER'; stageName: string }
+    | { type: 'SELF_DESTRUCT' };
 
 export interface MessageResponse {
     success: boolean

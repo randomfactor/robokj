@@ -43,17 +43,29 @@ function processMessageElement(element: Element) {
         }
 
         element.setAttribute('data-robokj-processed', 'true');
-        chrome.runtime.sendMessage(message, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
-                return;
-            }
-            if (response && response.success) {
-                console.log(`RoboKJ: Successfully registered singer ${singerName} (${w2gId})`);
-            } else {
-                console.warn(`RoboKJ: Failed to register singer: ${response?.error}`);
-            }
-        });
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success) {
+                    console.log(`RoboKJ: Successfully registered singer ${singerName} (${w2gId})`);
+                    sendToAll(`${singerName} has been added to the roster.`);
+                } else {
+                    console.warn(`RoboKJ: Failed to register singer: ${response?.error}`);
+                    if (response?.error === 'ignored' && response?.data) {
+                        sendToAll(`${response.data.stageName} has been 86'd`);
+                    } else if (response?.error === 'active' && response?.data) {
+                        sendToAll(`${response.data.w2gId} already registered as ${response.data.stageName}`);
+                    } else if (response?.error === 'Database error') {
+                        sendToAll(`Error: out of resources`);
+                    }
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
         return; // Done processing this specific message type
     }
 
@@ -94,15 +106,32 @@ function processMessageElement(element: Element) {
         }
 
         element.setAttribute('data-robokj-processed', 'true');
-        chrome.runtime.sendMessage(message, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('RoboKJ Error sending song request:', chrome.runtime.lastError);
-                return;
-            }
-            if (response && response.success) {
-                console.log(`RoboKJ: Successfully added song request "${songTitle}" for ${w2gId}`);
-            }
-        });
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending song request:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success && response.data) {
+                    const { stageName, count } = response.data;
+                    console.log(`RoboKJ: Successfully added song request "${songTitle}" for ${w2gId}`);
+                    sendToAll(`Request added to the queue for ${stageName} (${count}/5)`);
+                } else if (response && !response.success) {
+                    if (response.error === 'limit_reached' && response.data) {
+                        sendToAll(`Sorry ${response.data.stageName}, maximum 5 songs reached`);
+                    } else if (response.error === 'duplicate' && response.data) {
+                        sendToAll(`Sorry ${response.data.stageName}, "${response.data.title}" is already in the queue`);
+                    } else if (response.error === 'Database error') {
+                        sendToAll(`Error: out of resources`);
+                    } else if (response.error === 'User is not registered.') {
+                        // Generally we want to silently ignore unregistered chat links based on RULES.md to avoid spamming chat for regular conversation links
+                        console.log(`RoboKJ: Ignored unregistered user link ${w2gId}`);
+                    }
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
     }
 }
 

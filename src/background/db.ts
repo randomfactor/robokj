@@ -69,3 +69,11 @@ export async function getAllKSongRequests(): Promise<KSongRequests[]> {
     const db = await initDB();
     return await db.getAll('requests');
 }
+
+export async function clearAllData(): Promise<void> {
+    const db = await initDB();
+    const tx = db.transaction(['appState', 'requests'], 'readwrite');
+    await tx.objectStore('appState').clear();
+    await tx.objectStore('requests').clear();
+    await tx.done;
+}

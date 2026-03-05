@@ -1,5 +1,5 @@
 # Project Goal: RoboKJ Web Extension
-Build a Chrome Extension named "RoboKJ" using React (Vite), TypeScript, and Tailwind CSS.
+Build a Chrome Extension named "RoboKJ" using React (Vite), TypeScript, and Tailwind CSS. Read "RULES.md" for the rules of normal operation.
 
 ## Directory Structure
 Follow this specific structure for organization:

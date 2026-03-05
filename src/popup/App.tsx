@@ -15,6 +15,7 @@ function App() {
     const [ignoredSingers, setIgnoredSingers] = useState<any[]>([]);
     const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+    const [showAllSingers, setShowAllSingers] = useState(false);
 
     // Load saved link on popup open
     useEffect(() => {
@@ -132,13 +133,7 @@ function App() {
             if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
                 chrome.runtime.sendMessage({ type: 'REMOVE_SINGER', stageName }, (response) => {
                     if (response && response.success) {
-                        setActiveSingers(prev => prev.filter(s => s.singer.stageName !== stageName));
-                        // Also cleanup their request count from local state
-                        setRequestCounts(prev => {
-                            const newCounts = { ...prev };
-                            delete newCounts[stageName];
-                            return newCounts;
-                        });
+                        refreshRoster();
                     } else {
                         console.error('Failed to remove singer:', response?.error);
                     }
@@ -303,50 +298,53 @@ function App() {
                     </div>
                 </div>
 
-                {/* Right Column - Active & Ignored Singers */}
+                {/* Right Column - Singers List */}
                 <div className="flex-1 flex flex-col gap-4">
                     <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] flex-1">
-                        <h2 className="text-sm font-semibold text-[#cba6f7] mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#cba6f7]"></span> Active Singers
-                        </h2>
-                        {activeSingers.length > 0 ? (
-                            <ul className="list-none p-0 m-0 space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                                {activeSingers.map((status, index) => (
-                                    <ListItem
-                                        key={index}
-                                        name={status.singer.stageName}
-                                        requestCount={requestCounts[status.singer.stageName] || 0}
-                                        onRemove={() => handleRemoveSinger(status.singer.stageName)}
-                                        isPerforming={index === 0}
-                                    />
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-xs text-[#a6adc8] italic text-center mt-4">No active singers.</p>
-                        )}
-                    </div>
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="text-sm font-semibold text-[#cba6f7] flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${showAllSingers ? 'bg-[#a6adc8]' : 'bg-[#cba6f7]'}`}></span>
+                                {showAllSingers ? 'All Singers' : 'Active Singers'}
+                            </h2>
+                            <button
+                                onClick={() => setShowAllSingers(!showAllSingers)}
+                                className="text-xs bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] px-2 py-1 rounded transition-colors"
+                            >
+                                {showAllSingers ? 'Show Active Only' : 'Show All'}
+                            </button>
+                        </div>
 
-                    <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] flex-1 opacity-70">
-                        <h2 className="text-sm font-semibold text-[#a6adc8] mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#a6adc8]"></span> Ignored Singers
-                        </h2>
-                        {ignoredSingers.length > 0 ? (
-                            <ul className="list-none p-0 m-0 space-y-2 max-h-[150px] overflow-y-auto pr-2">
-                                {ignoredSingers.map((status, index) => (
-                                    <li key={index} className="flex justify-between items-center p-2.5 bg-[#313244] rounded-md transition duration-200">
-                                        <span className="flex-1 text-sm text-[#a6adc8]">{status.singer.stageName}</span>
-                                        <button
-                                            onClick={() => handleAction('REACTIVATE_SINGER', { stageName: status.singer.stageName })}
-                                            className="text-xs bg-[#a6e3a1] text-[#11111b] font-bold px-2 py-1 rounded hover:bg-[#94e2d5] transition-all"
-                                        >
-                                            Reactivate
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-xs text-[#6c7086] italic text-center mt-2">None</p>
-                        )}
+                        <ul className="list-none p-0 m-0 space-y-2 max-h-[450px] overflow-y-auto pr-2">
+                            {activeSingers.length === 0 && (!showAllSingers || ignoredSingers.length === 0) ? (
+                                <p className="text-xs text-[#a6adc8] italic text-center mt-4">No singers found.</p>
+                            ) : (
+                                <>
+                                    {activeSingers.map((status, index) => (
+                                        <ListItem
+                                            key={`active-${index}`}
+                                            name={status.singer.stageName}
+                                            requestCount={requestCounts[status.singer.stageName] || 0}
+                                            onRemove={() => handleRemoveSinger(status.singer.stageName)}
+                                            isPerforming={index === 0}
+                                        />
+                                    ))}
+                                    {showAllSingers && ignoredSingers.map((status, index) => (
+                                        <li key={`ignored-${index}`} className="flex justify-between items-center p-2.5 bg-[#313244] rounded-md transition duration-200 opacity-70">
+                                            <span className="flex-1 text-sm text-[#a6adc8] flex items-center gap-2">
+                                                <span title="Ignored">💀</span>
+                                                {status.singer.stageName}
+                                            </span>
+                                            <button
+                                                onClick={() => handleAction('REACTIVATE_SINGER', { stageName: status.singer.stageName })}
+                                                className="text-xs bg-[#a6e3a1] text-[#11111b] font-bold px-2 py-1 rounded hover:bg-[#94e2d5] transition-all"
+                                            >
+                                                Reactivate
+                                            </button>
+                                        </li>
+                                    ))}
+                                </>
+                            )}
+                        </ul>
                     </div>
                 </div>
             </div>

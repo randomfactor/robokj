@@ -1,5 +1,5 @@
 import { KSinger, MessageAction, MessageResponse, KRoster, KSingerStatus, KSongRequests } from '../types';
-import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKShow, setKShow, clearAllData } from './db';
+import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKShow, setKShow, clearAllData, getKState, setKState } from './db';
 
 // To ease testing of expected asynchronous operations
 export interface BackgroundServiceOptions {
@@ -8,9 +8,11 @@ export interface BackgroundServiceOptions {
 
 export class BackgroundService {
     options: BackgroundServiceOptions;
+    seedTestData: boolean;
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
+        this.seedTestData = true;
     }
 
     // Helper to generate a unique ID
@@ -49,6 +51,14 @@ export class BackgroundService {
         }
         if (message.type === 'GET_REQUEST_LIST') {
             this._handleGetRequestList(message.stageName, respond);
+            return true;
+        }
+        if (message.type === 'GET_QUEUE_FOR_USER') {
+            this._handleGetQueueForUser(message.w2gId, respond);
+            return true;
+        }
+        if (message.type === 'DELETE_QUEUE_FOR_USER') {
+            this._handleDeleteQueueForUser(message.w2gId, respond);
             return true;
         }
         if (message.type === 'REMOVE_SINGER') {
@@ -114,10 +124,83 @@ export class BackgroundService {
         }
     }
 
+    private async _handleGetQueueForUser(w2gId: string, sendResponse: (response: MessageResponse) => void) {
+        try {
+            const roster = await getKRoster();
+            if (!roster) {
+                sendResponse({ success: false, error: 'No roster found' });
+                return;
+            }
+            const singerStatus = roster.singers.find(s => s.singer.w2gId === w2gId);
+            if (!singerStatus) {
+                sendResponse({ success: false, error: 'User is not registered.' });
+                return;
+            }
+
+            const stageName = singerStatus.singer.stageName;
+            const requests = await getKSongRequests(stageName);
+
+            sendResponse({ success: true, data: { stageName, requests } });
+        } catch (error) {
+            console.error(`RoboKJ: Database error during GET_QUEUE_FOR_USER for ${w2gId}:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleDeleteQueueForUser(w2gId: string, sendResponse: (response: MessageResponse) => void) {
+        try {
+            const roster = await getKRoster();
+            if (!roster) {
+                sendResponse({ success: false, error: 'No roster found' });
+                return;
+            }
+            const singerStatus = roster.singers.find(s => s.singer.w2gId === w2gId);
+            if (!singerStatus) {
+                sendResponse({ success: false, error: 'User is not registered.' });
+                return;
+            }
+            
+            const stageName = singerStatus.singer.stageName;
+            const requests = await getKSongRequests(stageName);
+            
+            if (requests) {
+                requests.requests = requests.requests.slice(0, requests.nextIndex);
+                await setKSongRequests(stageName, requests);
+            }
+            
+            sendResponse({ success: true, data: { stageName } });
+        } catch (error) {
+            console.error(`RoboKJ: Database error during DELETE_QUEUE_FOR_USER for ${w2gId}:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _seedTestData() {
+        return new Promise<void>((resolve) => {
+            this._handleSetShowInfo({
+                venueName: 'Seed Dev2',
+                streamKey: 'iid2362wq6yvwxhkw5', // https://w2g.tv/?r=iid2362wq6yvwxhkw5
+                mode: 'manual',
+                durationInHours: 4
+            }, () => {
+                this._handleRegisterSinger({ w2gId: 'admin', stageName: 'Adam' }, () => {
+                    this._handleAddSongRequest('admin', { title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' }, () => {
+                        resolve();
+                    });
+                });
+            });
+        });
+    }
+
     private async _handleSelfDestruct(sendResponse: (response: MessageResponse) => void) {
         try {
             await clearAllData();
             console.log('RoboKJ: All IndexedDB data cleared via SELF_DESTRUCT');
+
+            if (this.seedTestData) {
+                await this._seedTestData();
+            }
+
             sendResponse({ success: true });
         } catch (error) {
             console.error('RoboKJ: Database error during SELF_DESTRUCT:', error);
@@ -358,64 +441,73 @@ export class BackgroundService {
             sendResponse({ success: false, error: error.toString() });
         }
     }
-
     private async _handleNextSinger(sendResponse: (response: MessageResponse) => void) {
         try {
             const roster = await getKRoster();
+            const state = await getKState() || { songsStarted: 0 };
+
             if (!roster) {
                 sendResponse({ success: false, error: 'No roster found' });
                 return;
             }
 
-            // Find current active singer index
-            const currentIndex = roster.singers.findIndex(s => s.status === 'active');
+            const isFirstSongOfShow = state.songsStarted === 0;
 
-            if (currentIndex === -1) {
-                sendResponse({ success: false, error: 'No active singers in the roster.' });
-                return;
-            }
+            if (!isFirstSongOfShow) {
+                // Find current active singer index
+                const currentIndex = roster.singers.findIndex(s => s.status === 'active');
 
-            // Move the current singer to the end of the roster, reset bump count
-            const currentSingerStatus = roster.singers[currentIndex];
-            roster.singers.splice(currentIndex, 1);
-            currentSingerStatus.bumpCount = 0;
-            roster.singers.push(currentSingerStatus);
-
-            // Increment their song request index
-            const prevStageName = currentSingerStatus.singer.stageName;
-            const requests = await getKSongRequests(prevStageName);
-            if (requests) {
-                requests.nextIndex++;
-                await setKSongRequests(prevStageName, requests);
-            }
-
-            // Find the *new* current singer
-            let nextValidFound = false;
-            while (!nextValidFound) {
-                const newCurrentIndex = roster.singers.findIndex(s => s.status === 'active');
-                if (newCurrentIndex === -1) {
-                    break; // Roster is empty of active singers
+                if (currentIndex === -1) {
+                    sendResponse({ success: false, error: 'No active singers in the roster.' });
+                    return;
                 }
 
-                const candidateStatus = roster.singers[newCurrentIndex];
-                const candidateStageName = candidateStatus.singer.stageName;
-                const candidateRequests = await getKSongRequests(candidateStageName);
+                // Move the current singer to the end of the roster, reset bump count
+                const currentSingerStatus = roster.singers[currentIndex];
+                roster.singers.splice(currentIndex, 1);
+                currentSingerStatus.bumpCount = 0;
+                roster.singers.push(currentSingerStatus);
 
-                if (!candidateRequests || candidateRequests.nextIndex >= candidateRequests.requests.length) {
-                    // This singer is out of songs. Set to ignored.
-                    candidateStatus.status = 'ignored';
-                    console.log(`RoboKJ: Singer ${candidateStageName} ran out of songs and is now 'ignored'`);
-                } else {
-                    nextValidFound = true;
+                // Increment their song request index
+                const prevStageName = currentSingerStatus.singer.stageName;
+                const requests = await getKSongRequests(prevStageName);
+                if (requests) {
+                    requests.nextIndex++;
+                    await setKSongRequests(prevStageName, requests);
+                }
+
+                // Find the *new* current singer
+                let nextValidFound = false;
+                while (!nextValidFound) {
+                    const newCurrentIndex = roster.singers.findIndex(s => s.status === 'active');
+                    if (newCurrentIndex === -1) {
+                        break; // Roster is empty of active singers
+                    }
+
+                    const candidateStatus = roster.singers[newCurrentIndex];
+                    const candidateStageName = candidateStatus.singer.stageName;
+                    const candidateRequests = await getKSongRequests(candidateStageName);
+
+                    if (!candidateRequests || candidateRequests.nextIndex >= candidateRequests.requests.length) {
+                        // This singer is out of songs. Set to ignored.
+                        candidateStatus.status = 'ignored';
+                        console.log(`RoboKJ: Singer ${candidateStageName} ran out of songs and is now 'ignored'`);
+                    } else {
+                        nextValidFound = true;
+                    }
+                }
+
+                await setKRoster(roster);
+
+                if (!nextValidFound) {
+                    sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
+                    return;
                 }
             }
 
-            await setKRoster(roster);
-
-            if (!nextValidFound) {
-                sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
-                return;
-            }
+            // Increment the counter so subsequent clicks rotate properly
+            state.songsStarted += 1;
+            await setKState(state);
 
             // Start the next song
             await this._playCurrentSong(roster, sendResponse);

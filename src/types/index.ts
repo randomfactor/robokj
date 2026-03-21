@@ -36,6 +36,11 @@ export interface KShow {
     mode: 'auto' | 'manual'
 }
 
+// IndexedDB key: "state"
+export interface KState {
+    songsStarted: number
+}
+
 // --- Message Types ---
 // Discriminated Unions make switch statements type-safe
 export type MessageAction =
@@ -46,6 +51,8 @@ export type MessageAction =
     | { type: 'SET_SHOW_INFO'; payload: Partial<KShow> }
     | { type: 'GET_ROSTER' }
     | { type: 'GET_REQUEST_LIST'; stageName: string }
+    | { type: 'GET_QUEUE_FOR_USER'; w2gId: string }
+    | { type: 'DELETE_QUEUE_FOR_USER'; w2gId: string }
     | { type: 'REMOVE_SINGER'; stageName: string }
     | { type: 'REACTIVATE_SINGER'; stageName: string }
     | { type: 'NEXT_SINGER' }

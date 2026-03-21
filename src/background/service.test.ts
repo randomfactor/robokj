@@ -51,7 +51,7 @@ describe('BackgroundService with IndexedDB', () => {
         };
         const responseConflict = await sendMessage(service, msgConflict);
         expect(responseConflict.success).toBe(false);
-        expect(responseConflict.error).toContain('already exists');
+        expect(responseConflict.error).toContain('active');
     });
 
     it('should handle SET_SHOW_INFO and GET_SHOW_INFO data operations', async () => {

@@ -69,6 +69,140 @@ function processMessageElement(element: Element) {
         return; // Done processing this specific message type
     }
 
+    // Check if the message is a queue command
+    if (messageText.trim() === '/q') {
+        let w2gId = 'admin'; // Default per user request if missing
+
+        // The sender's ID is usually in the overflow-clip div inside the message block
+        const idDiv = element.querySelector('.overflow-clip');
+        if (idDiv && idDiv.textContent) {
+            w2gId = idDiv.textContent.trim();
+        }
+
+        const message: MessageAction = {
+            type: 'GET_QUEUE_FOR_USER',
+            w2gId
+        };
+
+        if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+            console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
+            return;
+        }
+
+        element.setAttribute('data-robokj-processed', 'true');
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success && response.data) {
+                    const { stageName, requests } = response.data;
+                    if (!requests || requests.requests.length <= requests.nextIndex) {
+                        sendToAll(`@${stageName}, you have no songs queued.`);
+                    } else {
+                        const queuedSongs = requests.requests.slice(requests.nextIndex);
+                        sendToAll(`@${stageName}'s Queue:`);
+                        queuedSongs.forEach((req: any, idx: number) => {
+                            // Adding a slight delay might be necessary if Watch2Gether drops rapid messages
+                            // but let's try direct consecutive calls first
+                            setTimeout(() => sendToAll(`${idx + 1}. ${req.title}`), (idx + 1) * 200);
+                        });
+                    }
+                } else if (response && !response.success && response.error === 'User is not registered.') {
+                    // Do nothing or optionally notify
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
+        return; // Done processing this specific message type
+    }
+
+    // Check if the message is a history command
+    if (messageText.trim() === '/history') {
+        let w2gId = 'admin'; // Default per user request if missing
+
+        // The sender's ID is usually in the overflow-clip div inside the message block
+        const idDiv = element.querySelector('.overflow-clip');
+        if (idDiv && idDiv.textContent) {
+            w2gId = idDiv.textContent.trim();
+        }
+
+        const message: MessageAction = {
+            type: 'GET_QUEUE_FOR_USER',
+            w2gId
+        };
+
+        if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+            console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
+            return;
+        }
+
+        element.setAttribute('data-robokj-processed', 'true');
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success && response.data) {
+                    const { stageName, requests } = response.data;
+                    if (!requests || requests.nextIndex === 0) {
+                        sendToAll(`@${stageName}, you have no song history.`);
+                    } else {
+                        const historySongs = requests.requests.slice(0, requests.nextIndex);
+                        sendToAll(`@${stageName}'s History:`);
+                        historySongs.forEach((req: any, idx: number) => {
+                            setTimeout(() => sendToAll(`${idx + 1}. ${req.title}`), (idx + 1) * 200);
+                        });
+                    }
+                } else if (response && !response.success && response.error === 'User is not registered.') {
+                    // Do nothing or optionally notify
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
+        return; // Done processing this specific message type
+    }
+
+    // Check if the message is a delq command
+    if (messageText.trim() === '/delq') {
+        let w2gId = 'admin'; // Default per user request if missing
+
+        const idDiv = element.querySelector('.overflow-clip');
+        if (idDiv && idDiv.textContent) {
+            w2gId = idDiv.textContent.trim();
+        }
+
+        const message: MessageAction = {
+            type: 'DELETE_QUEUE_FOR_USER',
+            w2gId
+        };
+
+        if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+            console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
+            return;
+        }
+
+        element.setAttribute('data-robokj-processed', 'true');
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success && response.data) {
+                    sendToAll(`@${response.data.stageName}, your pending queue has been cleared!`);
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
+        return; // Done processing this specific message type
+    }
+
     // Check if the message is a song request (contains a link for the song)
     // We target the specific italicized song title link instead of any anchor tag
     const linkElement = element.querySelector('a.italic.hover\\:underline') as HTMLAnchorElement;

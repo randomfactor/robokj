@@ -1,10 +1,10 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { KRoster, KShow, KSongRequests } from '../types';
+import { KRoster, KShow, KSongRequests, KState } from '../types';
 
 interface RoboKJDBSchema extends DBSchema {
     appState: {
-        key: 'roster' | 'show';
-        value: KRoster | KShow;
+        key: 'roster' | 'show' | 'state';
+        value: KRoster | KShow | KState;
     };
     requests: {
         key: string; // stageName
@@ -53,6 +53,16 @@ export async function getKShow(): Promise<KShow | undefined> {
 export async function setKShow(show: KShow): Promise<void> {
     const db = await initDB();
     await db.put('appState', show, 'show');
+}
+
+export async function getKState(): Promise<KState | undefined> {
+    const db = await initDB();
+    return (await db.get('appState', 'state')) as KState | undefined;
+}
+
+export async function setKState(state: KState): Promise<void> {
+    const db = await initDB();
+    await db.put('appState', state, 'state');
 }
 
 export async function getKSongRequests(stageName: string): Promise<KSongRequests | undefined> {

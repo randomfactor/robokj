@@ -203,6 +203,28 @@ function processMessageElement(element: Element) {
         return; // Done processing this specific message type
     }
 
+    // Check if the message is a help command
+    const cmd = messageText.trim().toLowerCase();
+    if (cmd === '/?' || cmd === '/help' || cmd === '/commands') {
+        element.setAttribute('data-robokj-processed', 'true');
+        
+        const helpMessages = [
+            '🤖 RoboKJ Commands:',
+            '"/register <zoom-name>"',
+            '"<youtube link>" : add song to queue (max 5)',
+            '"/q" : view request queue',
+            '"/history" : view past songs',
+            '"/delq" : delete songs in q',
+            '"/help" : view this message'
+        ];
+        
+        helpMessages.forEach((msg, idx) => {
+            setTimeout(() => sendToAll(msg), idx * 200);
+        });
+        
+        return;
+    }
+
     // Check if the message is a song request (contains a link for the song)
     // We target the specific italicized song title link instead of any anchor tag
     const linkElement = element.querySelector('a.italic.hover\\:underline') as HTMLAnchorElement;

@@ -17,6 +17,12 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<RoboKJDBSchema>> | null = null;
 
+function notifyStateChange() {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'STATE_CHANGED' }).catch(() => {});
+    }
+}
+
 export function initDB() {
     if (!dbPromise) {
         dbPromise = openDB<RoboKJDBSchema>(DB_NAME, DB_VERSION, {
@@ -43,6 +49,7 @@ export async function getKRoster(): Promise<KRoster | undefined> {
 export async function setKRoster(roster: KRoster): Promise<void> {
     const db = await initDB();
     await db.put('appState', roster, 'roster');
+    notifyStateChange();
 }
 
 export async function getKShow(): Promise<KShow | undefined> {
@@ -53,6 +60,7 @@ export async function getKShow(): Promise<KShow | undefined> {
 export async function setKShow(show: KShow): Promise<void> {
     const db = await initDB();
     await db.put('appState', show, 'show');
+    notifyStateChange();
 }
 
 export async function getKState(): Promise<KState | undefined> {
@@ -63,6 +71,7 @@ export async function getKState(): Promise<KState | undefined> {
 export async function setKState(state: KState): Promise<void> {
     const db = await initDB();
     await db.put('appState', state, 'state');
+    notifyStateChange();
 }
 
 export async function getKSongRequests(stageName: string): Promise<KSongRequests | undefined> {
@@ -73,6 +82,7 @@ export async function getKSongRequests(stageName: string): Promise<KSongRequests
 export async function setKSongRequests(stageName: string, requests: KSongRequests): Promise<void> {
     const db = await initDB();
     await db.put('requests', requests, stageName);
+    notifyStateChange();
 }
 
 export async function getAllKSongRequests(): Promise<KSongRequests[]> {
@@ -86,4 +96,5 @@ export async function clearAllData(): Promise<void> {
     await tx.objectStore('appState').clear();
     await tx.objectStore('requests').clear();
     await tx.done;
+    notifyStateChange();
 }

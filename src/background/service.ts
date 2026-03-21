@@ -176,20 +176,40 @@ export class BackgroundService {
     }
 
     private async _seedTestData() {
-        return new Promise<void>((resolve) => {
-            this._handleSetShowInfo({
-                venueName: 'Seed Dev2',
-                streamKey: 'iid2362wq6yvwxhkw5', // https://w2g.tv/?r=iid2362wq6yvwxhkw5
-                mode: 'manual',
-                durationInHours: 4
-            }, () => {
-                this._handleRegisterSinger({ w2gId: 'admin', stageName: 'Adam' }, () => {
-                    this._handleAddSongRequest('admin', { title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' }, () => {
-                        resolve();
-                    });
-                });
-            });
-        });
+        const seedShow = {
+            venueName: 'Seed Dev2',
+            streamKey: 'iid2362wq6yvwxhkw5', // https://w2g.tv/?r=iid2362wq6yvwxhkw5
+            mode: 'manual' as const,
+            durationInHours: 4
+        };
+
+        const seedSingers = [
+            { w2gId: 'admin', stageName: 'Adam' },
+            { w2gId: 'User-RJMHU', stageName: 'Brad' },
+            { w2gId: 'User-KQAZU', stageName: 'Chad' }
+        ];
+
+        const seedRequests = [
+            { w2gId: 'admin', title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' },
+            { w2gId: 'User-RJMHU', title: 'Countdown 11', url: 'https://youtu.be/IG_ThYspaJA' },
+            { w2gId: 'User-RJMHU', title: 'Countdown 08', url: 'https://youtu.be/3XOQjkNyoIg' },
+            { w2gId: 'User-KQAZU', title: 'Countdown 12', url: 'https://youtu.be/5ymwMWajK0k' },
+            { w2gId: 'User-KQAZU', title: 'Countdown 10', url: 'https://youtu.be/lYuuW0moz50' },
+            { w2gId: 'User-KQAZU', title: 'Dizz Knee Land', url: 'https://www.youtube.com/watch?v=WpS67Qjialc' }
+        ];
+
+        // Seed Show
+        await new Promise((resolve) => this._handleSetShowInfo(seedShow, resolve));
+
+        // Seed Singers sequentially
+        for (const singer of seedSingers) {
+            await new Promise((resolve) => this._handleRegisterSinger(singer, resolve as any));
+        }
+
+        // Seed Requests sequentially
+        for (const req of seedRequests) {
+            await new Promise((resolve) => this._handleAddSongRequest(req.w2gId, { title: req.title, url: req.url }, resolve as any));
+        }
     }
 
     private async _handleSelfDestruct(sendResponse: (response: MessageResponse) => void) {
@@ -566,16 +586,41 @@ export class BackgroundService {
                 console.log(`RoboKJ: Singer ${bumpedSingerStatus.singer.stageName} was bumped (Count: 1).`);
             }
 
+            // Look for the next valid active singer who actually has songs queued!
+            let nextValidFound = false;
+            while (!nextValidFound) {
+                const newCurrentIndex = roster.singers.findIndex(s => s.status === 'active');
+                if (newCurrentIndex === -1) {
+                    break; // Roster is empty of active singers
+                }
+
+                const candidateStatus = roster.singers[newCurrentIndex];
+                const candidateStageName = candidateStatus.singer.stageName;
+                const candidateRequests = await getKSongRequests(candidateStageName);
+
+                if (!candidateRequests || candidateRequests.nextIndex >= candidateRequests.requests.length) {
+                    // This singer is out of songs. Set to ignored.
+                    candidateStatus.status = 'ignored';
+                    console.log(`RoboKJ: Singer ${candidateStageName} ran out of songs and is now 'ignored' during bump.`);
+                } else {
+                    nextValidFound = true;
+                }
+            }
+
             await setKRoster(roster);
 
-            // Check if there's someone to play next
-            const hasActiveSinger = roster.singers.findIndex(s => s.status === 'active') !== -1;
-            if (!hasActiveSinger) {
-                sendResponse({ success: false, error: 'No active singers left after bump.' });
+            const state = await getKState() || { songsStarted: 0 };
+            if (state.songsStarted === 0) {
+                state.songsStarted = 1;
+                await setKState(state);
+            }
+
+            if (!nextValidFound) {
+                sendResponse({ success: false, error: 'No active singers left with songs after bump.' });
                 return;
             }
 
-            // Play the next person's song
+            // Play the next person's song safely now that we confirmed they have one
             await this._playCurrentSong(roster, sendResponse);
 
         } catch (error) {

@@ -68,6 +68,24 @@ function App() {
 
     useEffect(() => {
         refreshRoster();
+
+        const listener = (message: any) => {
+            if (message && message.type === 'STATE_CHANGED') {
+                refreshRoster();
+                if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                    chrome.runtime.sendMessage({ type: 'GET_SHOW_INFO' }, (response) => {
+                        if (response && response.success && response.data) {
+                            setShowInfo(response.data);
+                        }
+                    });
+                }
+            }
+        };
+
+        if (chrome && chrome.runtime && chrome.runtime.onMessage) {
+            chrome.runtime.onMessage.addListener(listener);
+            return () => chrome.runtime.onMessage.removeListener(listener);
+        }
     }, []);
 
     const handleSaveShowInfo = () => {

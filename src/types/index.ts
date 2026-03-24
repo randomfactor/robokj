@@ -30,15 +30,15 @@ export interface KSongRequests {
 // IndexedDB key: "show"
 export interface KShow {
     venueName: string
-    startTimeUTC: string
+    startTimeUTC?: string
     durationInHours: number
     streamKey: string
-    mode: 'auto' | 'manual'
 }
 
 // IndexedDB key: "state"
 export interface KState {
     songsStarted: number
+    mode?: 'auto' | 'manual'
 }
 
 // --- Message Types ---
@@ -58,7 +58,12 @@ export type MessageAction =
     | { type: 'NEXT_SINGER' }
     | { type: 'BUMP_SINGER' }
     | { type: 'RESTART_VIDEO' }
-    | { type: 'SELF_DESTRUCT' };
+    | { type: 'SELF_DESTRUCT' }
+    | { type: 'VIDEO_ENDED' }
+    | { type: 'VIDEO_STARTED' }
+    | { type: 'VIDEO_ERROR'; payload: { errorCode: number } }
+    | { type: 'TOGGLE_MODE' }
+    | { type: 'GET_STATE' };
 
 export interface MessageResponse {
     success: boolean

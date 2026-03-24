@@ -22,8 +22,10 @@
                 "src/content/index.ts"
             ],
             "matches": [
-                "https://w2g.tv/en/room/*"
-            ]
+                "https://w2g.tv/en/room/*",
+                "https://player.w2g.tv/*"
+            ],
+            "all_frames": true
         }
     ],
     "host_permissions": [

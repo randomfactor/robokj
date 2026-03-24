@@ -85,6 +85,29 @@ export class BackgroundService {
             this._handleSelfDestruct(respond);
             return true;
         }
+        if (message.type === 'VIDEO_ENDED') {
+            this._handleVideoEnded(respond);
+            return true;
+        }
+        if (message.type === 'VIDEO_STARTED') {
+            console.log('RoboKJ: Received VIDEO_STARTED from content script.');
+            respond({ success: true });
+            return true;
+        }
+        if (message.type === 'VIDEO_ERROR') {
+            this._handleVideoError(message.payload.errorCode, respond);
+            return true;
+        }
+        if (message.type === 'TOGGLE_MODE') {
+            this._handleToggleMode(respond);
+            return true;
+        }
+        if (message.type === 'GET_STATE') {
+            getKState().then(state => respond({ success: true, data: state || { mode: 'manual', songsStarted: 0 } }));
+            return true;
+        }
+
+        return true;
 
         return true;
     }
@@ -159,15 +182,15 @@ export class BackgroundService {
                 sendResponse({ success: false, error: 'User is not registered.' });
                 return;
             }
-            
+
             const stageName = singerStatus.singer.stageName;
             const requests = await getKSongRequests(stageName);
-            
+
             if (requests) {
                 requests.requests = requests.requests.slice(0, requests.nextIndex);
                 await setKSongRequests(stageName, requests);
             }
-            
+
             sendResponse({ success: true, data: { stageName } });
         } catch (error) {
             console.error(`RoboKJ: Database error during DELETE_QUEUE_FOR_USER for ${w2gId}:`, error);
@@ -178,8 +201,7 @@ export class BackgroundService {
     private async _seedTestData() {
         const seedShow = {
             venueName: 'Seed Dev2',
-            streamKey: 'iid2362wq6yvwxhkw5', // https://w2g.tv/?r=iid2362wq6yvwxhkw5
-            mode: 'manual' as const,
+            streamKey: 'iid2362wq6yvwxhkw5',
             durationInHours: 4
         };
 
@@ -188,9 +210,10 @@ export class BackgroundService {
             { w2gId: 'User-RJMHU', stageName: 'Brad' },
             { w2gId: 'User-KQAZU', stageName: 'Chad' }
         ];
-
         const seedRequests = [
             { w2gId: 'admin', title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' },
+            { w2gId: 'admin', title: 'Countdown Master', url: 'https://youtu.be/kR56-5ycO0M' },
+            { w2gId: 'User-RJMHU', title: 'Let It Be Unplayable', url: 'https://www.youtube.com/watch?v=KSRDIB1BQ08' },
             { w2gId: 'User-RJMHU', title: 'Countdown 11', url: 'https://youtu.be/IG_ThYspaJA' },
             { w2gId: 'User-RJMHU', title: 'Countdown 08', url: 'https://youtu.be/3XOQjkNyoIg' },
             { w2gId: 'User-KQAZU', title: 'Countdown 12', url: 'https://youtu.be/5ymwMWajK0k' },
@@ -407,7 +430,7 @@ export class BackgroundService {
         }
     }
 
-    private async _playCurrentSong(roster: KRoster, sendResponse: (response: MessageResponse) => void) {
+    private async _playCurrentSong(roster: KRoster, sendResponse: (response: MessageResponse) => void, announceSingers: boolean = false) {
         // Find first active singer
         const currentSingerStatus = roster.singers.find(s => s.status === 'active');
         if (!currentSingerStatus) {
@@ -464,14 +487,29 @@ export class BackgroundService {
             const text = await res.text();
             const data = text ? JSON.parse(text) : { success: true };
             console.log(`RoboKJ: Successfully played song for ${stageName} via W2G API!`, data);
-            
+
             const activeSingers = roster.singers.filter(s => s.status === 'active');
             const announce = {
                 onStage: activeSingers[0]?.singer.stageName,
+                onStageSong: currentSong?.title,
                 nextUp: activeSingers[1]?.singer.stageName,
                 afterThat: activeSingers[2]?.singer.stageName
             };
-            
+
+            // Safely push announcement to any active W2G tabs directly from the background service
+            if (announceSingers && chrome && chrome.tabs && chrome.tabs.query) {
+                chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
+                    tabs.forEach(t => {
+                        if (t.id) {
+                            chrome.tabs.sendMessage(t.id, {
+                                type: 'ANNOUNCE_SINGERS',
+                                payload: announce
+                            }).catch(() => { });
+                        }
+                    });
+                });
+            }
+
             sendResponse({ success: true, data: announce });
         } catch (error: any) {
             console.error('RoboKJ: Error playing song via W2G API:', error);
@@ -512,34 +550,34 @@ export class BackgroundService {
                     requests.nextIndex++;
                     await setKSongRequests(prevStageName, requests);
                 }
+            }
 
-                // Find the *new* current singer
-                let nextValidFound = false;
-                while (!nextValidFound) {
-                    const newCurrentIndex = roster.singers.findIndex(s => s.status === 'active');
-                    if (newCurrentIndex === -1) {
-                        break; // Roster is empty of active singers
-                    }
-
-                    const candidateStatus = roster.singers[newCurrentIndex];
-                    const candidateStageName = candidateStatus.singer.stageName;
-                    const candidateRequests = await getKSongRequests(candidateStageName);
-
-                    if (!candidateRequests || candidateRequests.nextIndex >= candidateRequests.requests.length) {
-                        // This singer is out of songs. Set to ignored.
-                        candidateStatus.status = 'ignored';
-                        console.log(`RoboKJ: Singer ${candidateStageName} ran out of songs and is now 'ignored'`);
-                    } else {
-                        nextValidFound = true;
-                    }
+            // Find the *new* (or existing first) current singer
+            let nextValidFound = false;
+            while (!nextValidFound) {
+                const newCurrentIndex = roster.singers.findIndex(s => s.status === 'active');
+                if (newCurrentIndex === -1) {
+                    break; // Roster is empty of active singers
                 }
 
-                await setKRoster(roster);
+                const candidateStatus = roster.singers[newCurrentIndex];
+                const candidateStageName = candidateStatus.singer.stageName;
+                const candidateRequests = await getKSongRequests(candidateStageName);
 
-                if (!nextValidFound) {
-                    sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
-                    return;
+                if (!candidateRequests || candidateRequests.nextIndex >= candidateRequests.requests.length) {
+                    // This singer is out of songs. Set to ignored.
+                    candidateStatus.status = 'ignored';
+                    console.log(`RoboKJ: Singer ${candidateStageName} ran out of songs and is now 'ignored'`);
+                } else {
+                    nextValidFound = true;
                 }
+            }
+
+            await setKRoster(roster);
+
+            if (!nextValidFound) {
+                sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
+                return;
             }
 
             // Increment the counter so subsequent clicks rotate properly
@@ -547,10 +585,61 @@ export class BackgroundService {
             await setKState(state);
 
             // Start the next song
-            await this._playCurrentSong(roster, sendResponse);
+            await this._playCurrentSong(roster, sendResponse, true);
 
         } catch (error) {
             console.error(`RoboKJ: Database error during NEXT_SINGER:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleVideoEnded(sendResponse: (response: MessageResponse) => void) {
+        try {
+            const state = await getKState() || { mode: 'manual', songsStarted: 0 };
+            if (state.mode === 'auto') {
+                console.log('RoboKJ: Auto mode enabled. Triggering next singer automatically on video end.');
+                await this._handleNextSinger(sendResponse);
+            } else {
+                console.log('RoboKJ: Received VIDEO_ENDED, but mode is not auto. Ignoring.');
+                sendResponse({ success: true, data: 'Auto mode disabled. No action taken.' });
+            }
+        } catch (error) {
+            console.error('RoboKJ: Database error during VIDEO_ENDED:', error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleVideoError(errorCode: number, sendResponse: (response: MessageResponse) => void) {
+        try {
+            console.warn(`RoboKJ: Received VIDEO_ERROR (${errorCode}) from content script.`);
+            const state = await getKState() || { mode: 'manual', songsStarted: 0 };
+            if (state.mode === 'auto') {
+                console.log('RoboKJ: Auto mode enabled. Unplayable video detected. Auto-bumping singer.');
+
+                // Remove the unplayable song request from the active singer's queue
+                const roster = await getKRoster();
+                if (roster) {
+                    const activeSingerStatus = roster.singers.find(s => s.status === 'active');
+                    if (activeSingerStatus) {
+                        const stageName = activeSingerStatus.singer.stageName;
+                        const requests = await getKSongRequests(stageName);
+                        if (requests && requests.nextIndex < requests.requests.length) {
+                            // Splice deletes the unplayable song, smoothly shifting their queue
+                            requests.requests.splice(requests.nextIndex, 1);
+                            await setKSongRequests(stageName, requests);
+                            console.log(`RoboKJ: Removed unplayable song from ${stageName}'s queue.`);
+                        }
+                    }
+                }
+
+                // Bump the singer
+                await this._handleBumpSinger(sendResponse);
+            } else {
+                console.log('RoboKJ: Received VIDEO_ERROR, but mode is not auto. Ignoring.');
+                sendResponse({ success: true, data: 'Auto mode disabled. No action taken.' });
+            }
+        } catch (error) {
+            console.error('RoboKJ: Database error during VIDEO_ERROR:', error);
             sendResponse({ success: false, error: 'Database error' });
         }
     }
@@ -638,7 +727,7 @@ export class BackgroundService {
             }
 
             // Play the next person's song safely now that we confirmed they have one
-            await this._playCurrentSong(roster, sendResponse);
+            await this._playCurrentSong(roster, sendResponse, true);
 
         } catch (error) {
             console.error(`RoboKJ: Database error during BUMP_SINGER:`, error);
@@ -706,6 +795,19 @@ export class BackgroundService {
             sendResponse({ success: true });
         } catch (error) {
             console.error(`RoboKJ: Database error during REACTIVATE_SINGER for ${stageName}:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleToggleMode(sendResponse: (response: MessageResponse) => void) {
+        try {
+            const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
+            state.mode = state.mode === 'auto' ? 'manual' : 'auto';
+            await setKState(state);
+            console.log(`RoboKJ: Mode toggled to ${state.mode}`);
+            sendResponse({ success: true, data: { mode: state.mode } });
+        } catch (error) {
+            console.error('RoboKJ: Database error during TOGGLE_MODE:', error);
             sendResponse({ success: false, error: 'Database error' });
         }
     }

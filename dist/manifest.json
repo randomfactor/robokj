@@ -19,11 +19,13 @@
   "content_scripts": [
     {
       "js": [
-        "assets/index.ts-loader-60_8lEL8.js"
+        "assets/index.ts-loader-By9R8R1n.js"
       ],
       "matches": [
-        "https://w2g.tv/en/room/*"
-      ]
+        "https://w2g.tv/en/room/*",
+        "https://player.w2g.tv/*"
+      ],
+      "all_frames": true
     }
   ],
   "host_permissions": [
@@ -36,10 +38,11 @@
   "web_accessible_resources": [
     {
       "matches": [
+        "https://player.w2g.tv/*",
         "https://w2g.tv/*"
       ],
       "resources": [
-        "assets/index.ts-CUb39VpJ.js"
+        "assets/index.ts-BdR6iBRv.js"
       ],
       "use_dynamic_url": false
     }

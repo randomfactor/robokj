@@ -7,9 +7,9 @@ function App() {
         venueName: '',
         startTimeUTC: '',
         durationInHours: 4,
-        streamKey: '',
-        mode: 'manual' as 'auto' | 'manual'
+        streamKey: ''
     });
+    const [mode, setMode] = useState<'auto' | 'manual'>('manual');
     const [showInfoStatus, setShowInfoStatus] = useState('');
     const [activeSingers, setActiveSingers] = useState<any[]>([]);
     const [ignoredSingers, setIgnoredSingers] = useState<any[]>([]);
@@ -61,6 +61,13 @@ function App() {
                             });
                         }
                     });
+                }
+            });
+
+            // Also fetch current state (mode)
+            chrome.runtime.sendMessage({ type: 'GET_STATE' }, (response) => {
+                if (response && response.success && response.data) {
+                    setMode(response.data.mode || 'manual');
                 }
             });
         }
@@ -130,9 +137,9 @@ function App() {
                         venueName: '',
                         startTimeUTC: '',
                         durationInHours: 4,
-                        streamKey: '',
-                        mode: 'manual'
+                        streamKey: ''
                     });
+                    setMode('manual');
                     setActiveSingers([]);
                     setRequestCounts({});
                     setShowInfoStatus('Database cleared');
@@ -165,19 +172,6 @@ function App() {
             chrome.runtime.sendMessage({ type, ...payload }, (response) => {
                 if (response && response.success) {
                     refreshRoster();
-                    
-                    if ((type === 'NEXT_SINGER' || type === 'BUMP_SINGER') && response.data && response.data.onStage) {
-                         if (chrome.tabs && chrome.tabs.query) {
-                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                 if (tabs[0] && tabs[0].id) {
-                                     chrome.tabs.sendMessage(tabs[0].id, { 
-                                         type: 'ANNOUNCE_SINGERS', 
-                                         payload: response.data 
-                                     }).catch(() => {});
-                                 }
-                             });
-                         }
-                    }
                 } else {
                     console.error(`Failed action ${type}:`, response?.error);
                 }
@@ -186,11 +180,7 @@ function App() {
     };
 
     return (
-        <div className="font-sans w-max min-w-[700px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244] max-h-[600px] overflow-y-auto">
-            <h1 className="text-2xl mt-0 text-[#89b4fa] font-bold border-b-2 border-[#313244] pb-3 mb-5 tracking-wide">
-                RoboKJ
-            </h1>
-
+        <div className="font-sans w-max min-w-[700px] min-h-[580px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244]">
             <div className="flex gap-6">
                 {/* Left Column - Show Info */}
                 <div className="flex-1">
@@ -241,17 +231,6 @@ function App() {
                                         className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all"
                                     />
                                 </div>
-                                <div className="flex-1">
-                                    <label className="block text-xs mb-1 text-[#a6adc8]">Mode</label>
-                                    <select
-                                        value={showInfo.mode}
-                                        onChange={(e) => setShowInfo({ ...showInfo, mode: e.target.value as 'auto' | 'manual' })}
-                                        className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all cursor-pointer"
-                                    >
-                                        <option value="manual">Manual</option>
-                                        <option value="auto">Auto</option>
-                                    </select>
-                                </div>
                             </div>
                             <button
                                 onClick={handleSaveShowInfo}
@@ -264,6 +243,24 @@ function App() {
                     </div>
                     {/* Clear All Button */}
                     <div className="mt-4">
+                        <div className="mb-6 flex flex-col items-center">
+                            <label className="text-[10px] mb-2 text-[#a6adc8] font-bold uppercase tracking-widest">Operational Mode</label>
+                            <button
+                                onClick={() => handleAction('TOGGLE_MODE')}
+                                title="Click to toggle Automatic vs Manual progression"
+                                className="relative flex w-full h-10 bg-[#313244] rounded-full p-1 cursor-pointer transition-colors shadow-inner border border-[#45475a]"
+                            >
+                                {/* Active Tracker */}
+                                <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${mode === 'auto' ? 'translate-x-[100%] bg-[#cba6f7] shadow-[0_0_15px_rgba(203,166,247,0.4)]' : 'translate-x-0 bg-[#585b70] shadow-md'} z-10`} style={{ left: '4px' }}></div>
+
+                                {/* Labels */}
+                                <div className="absolute inset-0 flex items-center justify-around pointer-events-none text-xs font-bold z-20">
+                                    <span className={`w-1/2 text-center transition-colors duration-300 ${mode === 'manual' ? 'text-[#cdd6f4]' : 'text-[#a6adc8]'}`}>MANUAL</span>
+                                    <span className={`w-1/2 text-center transition-colors duration-300 ${mode === 'auto' ? 'text-[#11111b]' : 'text-[#a6adc8]'}`}>AUTOMATIC</span>
+                                </div>
+                            </button>
+                        </div>
+
                         {!isConfirmingClear ? (
                             <button
                                 onClick={() => setIsConfirmingClear(true)}
@@ -297,7 +294,7 @@ function App() {
                 <div className="flex-1">
                     <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] h-full flex flex-col gap-4">
                         <h2 className="text-sm font-semibold text-[#89b4fa] mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#89b4fa]"></span> Manual Controls
+                            <span className="w-2 h-2 rounded-full bg-[#89b4fa]"></span> Flow Controls
                         </h2>
 
                         <button
@@ -345,7 +342,7 @@ function App() {
                             </button>
                         </div>
 
-                        <ul className="list-none p-0 m-0 space-y-2 max-h-[450px] overflow-y-auto pr-2">
+                        <ul className="list-none p-0 m-0 space-y-2 max-h-[490px] overflow-y-auto pr-2">
                             {activeSingers.length === 0 && (!showAllSingers || ignoredSingers.length === 0) ? (
                                 <p className="text-xs text-[#a6adc8] italic text-center mt-4">No singers found.</p>
                             ) : (

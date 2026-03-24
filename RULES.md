@@ -30,6 +30,12 @@
 
 - If the show mode is "manual, the KJ can restart the current song by clicking the "Restart Song" button in the popup window. This will increment the bump count for the singer and restart the video. The next request index IS NOT incremented.
 
+## Timeouts
+
+- A maximum timeout per song is associated with the show info. This is nominally set to 270 seconds. If the current song has been playing for this amount of time, the song should be stopped and the next singer should be started normally as if the video had finished playing. 
+
+- If the current singer enters the "/restart" command within the first timeout/9.0 seconds of the song starting, the song should be restarted and the bump count should be incremented by 1. The new timeout period should be set to 8/9 of the original timeout period for the first restart. The singer is allowed to restart the song once more within timeout/9.0 seconds of the restarted song. On the second restart, the singer's remaining timeout is 7/9 of the original timeout. Any attempt to restart the song after that is ignored.
+
 ## At Startup
 
 - If the KJ invokes the "Clear All" command and confirms the action, RoboKJ should clear all data from the database and respond with a message to the w2g chat window indicating that the database has been cleared.

@@ -203,6 +203,45 @@ function processMessageElement(element: Element) {
         return; // Done processing this specific message type
     }
 
+    // Check if the message is a restart command
+    if (messageText.trim() === '/restart') {
+        let w2gId = 'admin'; // Default per user request if missing
+
+        const idDiv = element.querySelector('.overflow-clip');
+        if (idDiv && idDiv.textContent) {
+            w2gId = idDiv.textContent.trim();
+        }
+
+        const message: MessageAction = {
+            type: 'RESTART_VIDEO',
+            payload: { w2gId }
+        };
+
+        if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+            console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
+            return;
+        }
+
+        element.setAttribute('data-robokj-processed', 'true');
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('RoboKJ Error sending message:', chrome.runtime.lastError);
+                    return;
+                }
+                if (response && response.success) {
+                    // Chat is notified by W2G when the video restarts, or we can stay silent
+                } else if (response && !response.success && response.error) {
+                    // For example: "You are not the current singer on stage."
+                    sendToAll(response.error);
+                }
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
+        return; // Done processing this specific message type
+    }
+
     // Check if the message is a help command
     const cmd = messageText.trim().toLowerCase();
     if (cmd === '/?' || cmd === '/help' || cmd === '/commands') {
@@ -415,6 +454,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
             }
             if (afterThat) {
                 setTimeout(() => sendToAll(`After That: ${afterThat}`), 600);
+            }
+            sendResponse({ success: true });
+        } else if (message.type === 'BROADCAST_MESSAGE') {
+            const { text } = message.payload;
+            if (text) {
+                sendToAll(text);
             }
             sendResponse({ success: true });
         }

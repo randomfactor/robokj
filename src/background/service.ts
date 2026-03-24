@@ -78,7 +78,7 @@ export class BackgroundService {
             return true;
         }
         if (message.type === 'RESTART_VIDEO') {
-            this._handleRestartVideo(respond);
+            this._handleRestartVideo(message.payload?.w2gId, respond);
             return true;
         }
         if (message.type === 'SELF_DESTRUCT') {
@@ -243,6 +243,8 @@ export class BackgroundService {
             if (this.seedTestData) {
                 await this._seedTestData();
             }
+
+            this._broadcastMessage('The database has been cleared.');
 
             sendResponse({ success: true });
         } catch (error) {
@@ -516,12 +518,28 @@ export class BackgroundService {
             sendResponse({ success: false, error: error.toString() });
         }
     }
+    private _broadcastMessage(text: string) {
+        if (chrome && chrome.tabs && chrome.tabs.query) {
+            chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
+                tabs.forEach(t => {
+                    if (t.id) {
+                        chrome.tabs.sendMessage(t.id, {
+                            type: 'BROADCAST_MESSAGE',
+                            payload: { text }
+                        }).catch(() => { });
+                    }
+                });
+            });
+        }
+    }
+
     private async _handleNextSinger(sendResponse: (response: MessageResponse) => void) {
         try {
             const roster = await getKRoster();
             const state = await getKState() || { songsStarted: 0 };
 
             if (!roster) {
+                this._broadcastMessage('There are no active singers in the roster.');
                 sendResponse({ success: false, error: 'No roster found' });
                 return;
             }
@@ -576,6 +594,7 @@ export class BackgroundService {
             await setKRoster(roster);
 
             if (!nextValidFound) {
+                this._broadcastMessage('There are no active singers in the roster.');
                 sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
                 return;
             }
@@ -735,7 +754,7 @@ export class BackgroundService {
         }
     }
 
-    private async _handleRestartVideo(sendResponse: (response: MessageResponse) => void) {
+    private async _handleRestartVideo(w2gId: string | undefined, sendResponse: (response: MessageResponse) => void) {
         try {
             const roster = await getKRoster();
             if (!roster) {
@@ -746,6 +765,13 @@ export class BackgroundService {
             const currentSingerStatus = roster.singers.find(s => s.status === 'active');
             if (!currentSingerStatus) {
                 sendResponse({ success: false, error: 'No active singers in the roster.' });
+                return;
+            }
+
+            // Check if chat sender matches the current singer
+            if (w2gId && currentSingerStatus.singer.w2gId !== w2gId) {
+                console.warn(`RoboKJ: Restart command ignored. Sender ${w2gId} is not the current singer.`);
+                sendResponse({ success: false, error: 'You are not the current singer on stage.' });
                 return;
             }
 

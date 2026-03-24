@@ -57,8 +57,9 @@ export type MessageAction =
     | { type: 'REACTIVATE_SINGER'; stageName: string }
     | { type: 'NEXT_SINGER' }
     | { type: 'BUMP_SINGER' }
-    | { type: 'RESTART_VIDEO' }
+    | { type: 'RESTART_VIDEO'; payload?: { w2gId: string } }
     | { type: 'SELF_DESTRUCT' }
+    | { type: 'BROADCAST_MESSAGE'; payload: { text: string } }
     | { type: 'VIDEO_ENDED' }
     | { type: 'VIDEO_STARTED' }
     | { type: 'VIDEO_ERROR'; payload: { errorCode: number } }

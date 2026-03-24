@@ -343,7 +343,6 @@ function startObservingChat() {
     observer.observe(chatContainer, { childList: true, subtree: true, characterData: true });
 }
 
-// Function to emit a message into the chat container
 export function sendToAll(message: string) {
     const chatInput = document.getElementById('w2g-chat-input') as HTMLInputElement | HTMLTextAreaElement;
     if (chatInput) {
@@ -353,6 +352,27 @@ export function sendToAll(message: string) {
         // Option A: Trigger the custom 'w2gsubmit' event directly on the textarea
         chatInput.dispatchEvent(new Event('w2gsubmit', { bubbles: true, cancelable: true }));
     }
+}
+
+// Listen for broadcast instructions from the Popup UI
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        if (message.type === 'ANNOUNCE_SINGERS') {
+            const { onStage, nextUp, afterThat } = message.payload;
+            
+            if (onStage) {
+                setTimeout(() => sendToAll(`On Stage: ${onStage}`), 200);
+            }
+            if (nextUp) {
+                setTimeout(() => sendToAll(`Next Up: ${nextUp}`), 400);
+            }
+            if (afterThat) {
+                setTimeout(() => sendToAll(`After That: ${afterThat}`), 600);
+            }
+            sendResponse({ success: true });
+        }
+        return true;
+    });
 }
 
 // Initialize when the DOM is ready

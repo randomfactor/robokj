@@ -351,6 +351,15 @@ export class BackgroundService {
 
             const stageName = singerStatus.singer.stageName;
 
+            // Auto-reactivate ignored singers into the back of the active roster if they queue a song
+            if (singerStatus.status === 'ignored') {
+                singerStatus.status = 'active';
+                roster.singers = roster.singers.filter(s => s.singer.stageName !== stageName);
+                roster.singers.push(singerStatus);
+                await setKRoster(roster);
+                console.log(`RoboKJ: Reactivated ignored singer ${stageName} because they queued a song.`);
+            }
+
             // Load singer requests or initialize
             const requests: KSongRequests = await getKSongRequests(stageName) || {
                 singer: singerStatus.singer,
@@ -455,7 +464,15 @@ export class BackgroundService {
             const text = await res.text();
             const data = text ? JSON.parse(text) : { success: true };
             console.log(`RoboKJ: Successfully played song for ${stageName} via W2G API!`, data);
-            sendResponse({ success: true, data });
+            
+            const activeSingers = roster.singers.filter(s => s.status === 'active');
+            const announce = {
+                onStage: activeSingers[0]?.singer.stageName,
+                nextUp: activeSingers[1]?.singer.stageName,
+                afterThat: activeSingers[2]?.singer.stageName
+            };
+            
+            sendResponse({ success: true, data: announce });
         } catch (error: any) {
             console.error('RoboKJ: Error playing song via W2G API:', error);
             sendResponse({ success: false, error: error.toString() });

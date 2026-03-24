@@ -165,6 +165,19 @@ function App() {
             chrome.runtime.sendMessage({ type, ...payload }, (response) => {
                 if (response && response.success) {
                     refreshRoster();
+                    
+                    if ((type === 'NEXT_SINGER' || type === 'BUMP_SINGER') && response.data && response.data.onStage) {
+                         if (chrome.tabs && chrome.tabs.query) {
+                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                 if (tabs[0] && tabs[0].id) {
+                                     chrome.tabs.sendMessage(tabs[0].id, { 
+                                         type: 'ANNOUNCE_SINGERS', 
+                                         payload: response.data 
+                                     }).catch(() => {});
+                                 }
+                             });
+                         }
+                    }
                 } else {
                     console.error(`Failed action ${type}:`, response?.error);
                 }

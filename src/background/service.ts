@@ -9,10 +9,44 @@ export interface BackgroundServiceOptions {
 export class BackgroundService {
     options: BackgroundServiceOptions;
     seedTestData: boolean;
+    private _fallbackTimeoutId?: ReturnType<typeof setTimeout>;
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
         this.seedTestData = true;
+
+        if (typeof chrome !== 'undefined' && chrome.alarms) {
+            chrome.alarms.onAlarm.addListener((alarm) => {
+                if (alarm.name === 'song_timeout') {
+                    console.log('RoboKJ: song_timeout alarm fired.');
+                    this._checkTimeoutAndRotate();
+                }
+            });
+        }
+    }
+
+    private async _checkTimeoutAndRotate() {
+        try {
+            const state = await getKState();
+            if (!state || !state.currentSongStartTimeMs || !state.currentSongTimeoutDurationMs) return;
+
+            const timeElapsed = Date.now() - state.currentSongStartTimeMs;
+            // 1-second buffer leeway
+            if (timeElapsed >= state.currentSongTimeoutDurationMs - 1000) {
+                console.log('RoboKJ: Maximum song timeout exactly reached! Automatically rotating roster.');
+                this._broadcastMessage('Maximum song duration reached. Time’s up!');
+
+                // Block double-firing
+                state.currentSongTimeoutDurationMs = 0;
+                await setKState(state);
+
+                this._handleNextSinger(() => { });
+            } else {
+                console.log(`RoboKJ: Timeout check early. Elapsed: ${timeElapsed}ms, Required: ${state.currentSongTimeoutDurationMs}ms`);
+            }
+        } catch (error) {
+            console.error('RoboKJ Context Error:', error);
+        }
     }
 
     // Helper to generate a unique ID
@@ -91,7 +125,7 @@ export class BackgroundService {
         }
         if (message.type === 'VIDEO_STARTED') {
             console.log('RoboKJ: Received VIDEO_STARTED from content script.');
-            respond({ success: true });
+            this._handleVideoStarted(respond);
             return true;
         }
         if (message.type === 'VIDEO_ERROR') {
@@ -212,6 +246,7 @@ export class BackgroundService {
         ];
         const seedRequests = [
             { w2gId: 'admin', title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' },
+            { w2gId: 'admin', title: 'I Like You Better Than Me - Bebe Rexha', url: 'https://www.youtube.com/watch?v=l8_MOltmUKM' },
             { w2gId: 'admin', title: 'Countdown Master', url: 'https://youtu.be/kR56-5ycO0M' },
             { w2gId: 'User-RJMHU', title: 'Let It Be Unplayable', url: 'https://www.youtube.com/watch?v=KSRDIB1BQ08' },
             { w2gId: 'User-RJMHU', title: 'Countdown 11', url: 'https://youtu.be/IG_ThYspaJA' },
@@ -599,6 +634,12 @@ export class BackgroundService {
                 return;
             }
 
+            // Whenever we rotate singers or forcefully progress, clear any pending timeouts
+            if (typeof chrome !== 'undefined' && chrome.alarms) chrome.alarms.clear('song_timeout');
+            if (this._fallbackTimeoutId) clearTimeout(this._fallbackTimeoutId);
+            state.currentSongTimeoutDurationMs = 0;
+            state.currentSongRestartsUsed = 0;
+
             // Increment the counter so subsequent clicks rotate properly
             state.songsStarted += 1;
             await setKState(state);
@@ -608,6 +649,37 @@ export class BackgroundService {
 
         } catch (error) {
             console.error(`RoboKJ: Database error during NEXT_SINGER:`, error);
+            sendResponse({ success: false, error: 'Database error' });
+        }
+    }
+
+    private async _handleVideoStarted(sendResponse: (response: MessageResponse) => void) {
+        try {
+            const show = await getKShow();
+            const state = await getKState() || { songsStarted: 0 };
+
+            const maxDuration = show?.maxSongDurationSeconds || 270;
+            let restarts = state.currentSongRestartsUsed || 0;
+
+            // Calculate active timeout window based on restarts applied
+            const activeTimeout = maxDuration * ((9 - restarts) / 9);
+
+            state.currentSongStartTimeMs = Date.now();
+            state.currentSongTimeoutDurationMs = activeTimeout * 1000;
+            await setKState(state);
+
+            if (typeof chrome !== 'undefined' && chrome.alarms) {
+                chrome.alarms.create('song_timeout', { delayInMinutes: activeTimeout / 60 });
+                console.log(`RoboKJ: Set song timeout alarm for ${activeTimeout} seconds.`);
+            }
+
+            // Fallback accurate tracking for sub-minute testing windows (where MV3 Alarms fail)
+            if (this._fallbackTimeoutId) clearTimeout(this._fallbackTimeoutId);
+            this._fallbackTimeoutId = setTimeout(() => this._checkTimeoutAndRotate(), activeTimeout * 1000);
+
+            sendResponse({ success: true });
+        } catch (error) {
+            console.error('RoboKJ: Error tracking VIDEO_STARTED state:', error);
             sendResponse({ success: false, error: 'Database error' });
         }
     }
@@ -746,6 +818,14 @@ export class BackgroundService {
             }
 
             // Play the next person's song safely now that we confirmed they have one
+            if (typeof chrome !== 'undefined' && chrome.alarms) chrome.alarms.clear('song_timeout');
+            if (this._fallbackTimeoutId) clearTimeout(this._fallbackTimeoutId);
+
+            if (state) {
+                state.currentSongTimeoutDurationMs = 0;
+                state.currentSongRestartsUsed = 0;
+                await setKState(state);
+            }
             await this._playCurrentSong(roster, sendResponse, true);
 
         } catch (error) {
@@ -773,6 +853,38 @@ export class BackgroundService {
                 console.warn(`RoboKJ: Restart command ignored. Sender ${w2gId} is not the current singer.`);
                 sendResponse({ success: false, error: 'You are not the current singer on stage.' });
                 return;
+            }
+
+            const state = await getKState();
+            if (state) {
+                const maxDuration = (await getKShow())?.maxSongDurationSeconds || 270;
+                let restarts = state.currentSongRestartsUsed || 0;
+
+                // If triggered by a user via chat, enforce the timeout window rules
+                if (w2gId) {
+                    if (restarts >= 2) {
+                        this._broadcastMessage(`@${currentSingerStatus.singer.stageName}, you have already used your maximum allowed restarts.`);
+                        sendResponse({ success: false, error: 'Maximum restarts used.' });
+                        return;
+                    }
+
+                    const timeElapsedMs = Date.now() - (state.currentSongStartTimeMs || 0);
+                    const allowedWindowMs = (maxDuration / 9) * 1000;
+
+                    if (timeElapsedMs > allowedWindowMs) {
+                        this._broadcastMessage(`Too late to restart! (${Math.floor(timeElapsedMs / 1000)}s exceeds the ${Math.floor(allowedWindowMs / 1000)}s limit)`);
+                        sendResponse({ success: false, error: 'Too late to restart.' });
+                        return;
+                    }
+                }
+
+                // Increment restarts for BOTH manual KJ and chat commands, so the timer shrinks correctly
+                state.currentSongRestartsUsed = restarts + 1;
+                state.currentSongTimeoutDurationMs = 0; // invalidate old timer block
+                await setKState(state);
+
+                if (typeof chrome !== 'undefined' && chrome.alarms) chrome.alarms.clear('song_timeout');
+                if (this._fallbackTimeoutId) clearTimeout(this._fallbackTimeoutId);
             }
 
             // Increment bump count

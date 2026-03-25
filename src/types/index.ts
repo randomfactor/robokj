@@ -33,12 +33,16 @@ export interface KShow {
     startTimeUTC?: string
     durationInHours: number
     streamKey: string
+    maxSongDurationSeconds?: number
 }
 
 // IndexedDB key: "state"
 export interface KState {
     songsStarted: number
     mode?: 'auto' | 'manual'
+    currentSongStartTimeMs?: number
+    currentSongTimeoutDurationMs?: number
+    currentSongRestartsUsed?: number
 }
 
 // --- Message Types ---

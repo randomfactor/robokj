@@ -7,7 +7,8 @@ function App() {
         venueName: '',
         startTimeUTC: '',
         durationInHours: 4,
-        streamKey: ''
+        streamKey: '',
+        maxSongDurationSeconds: 270
     });
     const [mode, setMode] = useState<'auto' | 'manual'>('manual');
     const [showInfoStatus, setShowInfoStatus] = useState('');
@@ -137,7 +138,8 @@ function App() {
                         venueName: '',
                         startTimeUTC: '',
                         durationInHours: 4,
-                        streamKey: ''
+                        streamKey: '',
+                        maxSongDurationSeconds: 270
                     });
                     setMode('manual');
                     setActiveSingers([]);
@@ -228,6 +230,16 @@ function App() {
                                         min="1"
                                         value={showInfo.durationInHours}
                                         onChange={(e) => setShowInfo({ ...showInfo, durationInHours: parseFloat(e.target.value) || 0 })}
+                                        className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs mb-1 text-[#a6adc8]">Max Song (sec)</label>
+                                    <input
+                                        type="number"
+                                        min="10"
+                                        value={showInfo.maxSongDurationSeconds || 270}
+                                        onChange={(e) => setShowInfo({ ...showInfo, maxSongDurationSeconds: parseInt(e.target.value) || 270 })}
                                         className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all"
                                     />
                                 </div>

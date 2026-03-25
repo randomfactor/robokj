@@ -5,10 +5,6 @@
     "src": "../../../../../@crx/manifest",
     "isEntry": true
   },
-  "_index.ts-loader-zYAwFy_P.js": {
-    "file": "assets/index.ts-loader-zYAwFy_P.js",
-    "src": "_index.ts-loader-zYAwFy_P.js"
-  },
   "src/background/index.ts": {
     "file": "assets/index.ts-w3c4Hi1j.js",
     "name": "index.ts",
@@ -16,7 +12,7 @@
     "isEntry": true
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-C5iEdEyH.js",
+    "file": "assets/index.ts-DD795M8u.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true

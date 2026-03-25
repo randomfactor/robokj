@@ -15,7 +15,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = true;
+        this.seedTestData = false;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {
@@ -217,10 +217,10 @@ export class BackgroundService {
         try {
             const show = await getKShow();
             const state = await getKState() || { songsStarted: 0 };
-            
+
             const maxDuration = show?.maxSongDurationSeconds || 270;
             let restarts = state.currentSongRestartsUsed || 0;
-            
+
             // Calculate active timeout window based on restarts applied
             const activeTimeout = maxDuration * ((9 - restarts) / 9);
 

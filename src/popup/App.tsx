@@ -182,8 +182,8 @@ function App() {
     };
 
     return (
-        <div className="font-sans w-max min-w-[700px] min-h-[580px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244]">
-            <div className="flex gap-6">
+        <div className="font-sans w-[700px] min-h-[580px] p-4 bg-[#1e1e2e] text-[#cdd6f4] rounded-lg shadow-xl border border-[#313244]">
+            <div className="flex gap-4">
                 {/* Left Column - Show Info */}
                 <div className="flex-1">
                     <div className="p-4 bg-[#181825] rounded-xl border border-[#313244]">
@@ -303,7 +303,7 @@ function App() {
                 </div>
 
                 {/* Center Column - Controls */}
-                <div className="flex-1">
+                <div className="w-40 shrink-0">
                     <div className="p-4 bg-[#181825] rounded-xl border border-[#313244] h-full flex flex-col gap-4">
                         <h2 className="text-sm font-semibold text-[#89b4fa] mb-3 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#89b4fa]"></span> Flow Controls

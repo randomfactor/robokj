@@ -240,24 +240,40 @@ export function processMessageElement(element: Element) {
         return; // Done processing this specific message type
     }
 
-    // Check if the message is a help command
     const cmd = messageText.trim().toLowerCase();
     if (cmd === '/?' || cmd === '/help' || cmd === '/commands') {
         element.setAttribute('data-robokj-processed', 'true');
-        
-        const helpMessages = [
-            '🤖 RoboKJ Commands:',
-            '"/register <zoom-name>"',
-            '"<youtube link>" : add song to queue (max 5)',
-            '"/q" : view request queue',
-            '"/history" : view past songs',
-            '"/delq" : delete songs in q',
-            '"/help" : view this message'
-        ];
-        
-        helpMessages.forEach((msg, idx) => {
-            setTimeout(() => sendToAll(msg), idx * 200);
-        });
+
+        if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+            console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
+            return;
+        }
+
+        try {
+            chrome.runtime.sendMessage({ type: 'GET_SHOW_INFO' }, (response) => {
+                let penaltySeconds = 30; // Fallback default
+                if (response && response.success && response.data && response.data.maxSongDurationSeconds) {
+                    penaltySeconds = Math.round((1.0 / 9.0) * response.data.maxSongDurationSeconds);
+                }
+
+                const helpMessages = [
+                    '🤖 RoboKJ Commands:',
+                    '"/register <zoom-name>"',
+                    '"<youtube link>" : add song to queue (max 5)',
+                    '"/q" : view request queue',
+                    '"/history" : view past songs',
+                    '"/delq" : delete songs in q',
+                    `"/restart" : restart video (lose ${penaltySeconds}s)`,
+                    '"/help" : view this message'
+                ];
+                
+                helpMessages.forEach((msg, idx) => {
+                    setTimeout(() => sendToAll(msg), idx * 200);
+                });
+            });
+        } catch (error) {
+            console.warn('RoboKJ Context Error:', error);
+        }
         
         return;
     }

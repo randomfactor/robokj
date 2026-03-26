@@ -12,11 +12,11 @@
 - [x] If the URL in a request is not recognized as valid, ignore it and do not send a response message.
 - [x] Instead of URL hidden to avoid spam, include the part of the URL that precedes the question mark and follows the last slash mark or second to last slash mark if otherwise empty.
 - [x] It would be better if the message for duplicate requests said "already claimed by Brad" (whichever user had sung it or has it in their queue).
-- [ ] After the "There are no active singers in the roster" message is displayed, if a mode is still 'auto', after a new valid request is entered by any user, the next singer processing should be triggered.
-- [ ] The start time and duration should be respected. At the end of the playing song, the mode should be set to 'manual' and a message should sent thanking everyone for attending the venueName show.
-- [ ] If mode is set to 'auto' and current time is after the start time and the show has not yet started, the first singer in the roster should have their song started (as if the Next Singer button were pushed).
-- [ ] If the mode is set to auto and the current time is before the start time, a timer should be set to trigger the first singer processing at the start time.
-- [ ] If the mode is set to auto and the current time is after the start time plus duration, send a message saying the show has expired.
+- [x] After the "There are no active singers in the roster" message is displayed, if a mode is still 'auto', after a new valid request is entered by any user, the next singer processing should be triggered.
+- [x] The start time and duration should be respected. At the end of the playing song, the mode should be set to 'manual' and a message should sent thanking everyone for attending the venueName show.
+- [x] If mode is set to 'auto' and current time is after the start time and the show has not yet started, the first singer in the roster should have their song started (as if the Next Singer button were pushed).
+- [x] If the mode is set to auto and the current time is before the start time, a timer should be set to trigger the first singer processing at the start time.
+- [x] If the mode is set to auto and the current time is after the start time plus duration, send a message saying the show has expired.
 
 
  

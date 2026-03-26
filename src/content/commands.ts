@@ -1,6 +1,79 @@
 import { MessageAction } from '../types';
 import { sendToAll } from './w2g-client';
 
+const RECENT_MESSAGE_TTL_MS = 15000;
+const MAX_RECENT_MESSAGE_KEYS = 800;
+const recentMessageKeys = new Map<string, number>();
+
+function cleanupRecentMessageKeys(now: number) {
+    for (const [key, ts] of recentMessageKeys) {
+        if (now - ts > RECENT_MESSAGE_TTL_MS) {
+            recentMessageKeys.delete(key);
+        }
+    }
+
+    if (recentMessageKeys.size <= MAX_RECENT_MESSAGE_KEYS) {
+        return;
+    }
+
+    const sortedOldestFirst = [...recentMessageKeys.entries()].sort((a, b) => a[1] - b[1]);
+    const overflow = recentMessageKeys.size - MAX_RECENT_MESSAGE_KEYS;
+    for (let i = 0; i < overflow; i++) {
+        recentMessageKeys.delete(sortedOldestFirst[i][0]);
+    }
+}
+
+function getPreferredDomMessageId(element: Element): string | null {
+    const directId = element.getAttribute('data-mid')
+        || element.getAttribute('data-id')
+        || element.getAttribute('data-message-id')
+        || element.id;
+    if (directId) {
+        return `dom:${directId}`;
+    }
+
+    const nestedWithId = element.querySelector('[data-mid], [data-id], [data-message-id], [id]');
+    if (!nestedWithId) {
+        return null;
+    }
+
+    const nestedId = nestedWithId.getAttribute('data-mid')
+        || nestedWithId.getAttribute('data-id')
+        || nestedWithId.getAttribute('data-message-id')
+        || nestedWithId.id;
+    return nestedId ? `dom:${nestedId}` : null;
+}
+
+function buildFallbackMessageFingerprint(element: Element, messageText: string): string {
+    const w2gId = element.querySelector('.overflow-clip')?.textContent?.trim() || 'unknown';
+
+    const timeNode = element.querySelector('time, .timestamp, [data-time], [datetime]');
+    const timeToken = timeNode?.getAttribute('datetime')
+        || timeNode?.getAttribute('data-time')
+        || timeNode?.textContent?.trim()
+        || '';
+
+    const prevText = element.previousElementSibling?.querySelector('.break-words')?.textContent?.trim() || '';
+    const nextText = element.nextElementSibling?.querySelector('.break-words')?.textContent?.trim() || '';
+
+    return `fp:${w2gId}|${messageText.trim()}|${timeToken}|${prevText}|${nextText}`;
+}
+
+function hasRecentlyProcessedMessage(element: Element, messageText: string): boolean {
+    const now = Date.now();
+    cleanupRecentMessageKeys(now);
+
+    const messageKey = getPreferredDomMessageId(element) || buildFallbackMessageFingerprint(element, messageText);
+    const previousTs = recentMessageKeys.get(messageKey);
+
+    if (previousTs && now - previousTs <= RECENT_MESSAGE_TTL_MS) {
+        return true;
+    }
+
+    recentMessageKeys.set(messageKey, now);
+    return false;
+}
+
 function extractUrlPart(url: string): string {
     const beforeQuery = url.split('?')[0];
     const slashParts = beforeQuery.split('/');
@@ -25,6 +98,11 @@ export function processMessageElement(element: Element) {
 
     // Check if the message is a registration command
     if (messageText.trim().startsWith('/register ')) {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         const singerName = messageText.replace('/register ', '').trim();
 
         // Extract the w2gId (the user's identity string)
@@ -79,6 +157,11 @@ export function processMessageElement(element: Element) {
 
     // Check if the message is a queue command
     if (messageText.trim() === '/q') {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         let w2gId = 'admin'; // Default per user request if missing
 
         // The sender's ID is usually in the overflow-clip div inside the message block
@@ -129,6 +212,11 @@ export function processMessageElement(element: Element) {
 
     // Check if the message is a history command
     if (messageText.trim() === '/history') {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         let w2gId = 'admin'; // Default per user request if missing
 
         // The sender's ID is usually in the overflow-clip div inside the message block
@@ -179,6 +267,11 @@ export function processMessageElement(element: Element) {
 
     // Check if the message is a delq command
     if (messageText.trim() === '/delq') {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         let w2gId = 'admin'; // Default per user request if missing
 
         const idDiv = element.querySelector('.overflow-clip');
@@ -215,6 +308,11 @@ export function processMessageElement(element: Element) {
 
     // Check if the message is a restart command
     if (messageText.trim() === '/restart') {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         let w2gId = 'admin'; // Default per user request if missing
 
         const idDiv = element.querySelector('.overflow-clip');
@@ -254,6 +352,11 @@ export function processMessageElement(element: Element) {
 
     const cmd = messageText.trim().toLowerCase();
     if (cmd === '/?' || cmd === '/help' || cmd === '/commands') {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         element.setAttribute('data-robokj-processed', 'true');
 
         if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
@@ -295,6 +398,11 @@ export function processMessageElement(element: Element) {
     const linkElement = element.querySelector('a.italic.hover\\:underline') as HTMLAnchorElement;
 
     if (linkElement && linkElement.href) {
+        if (hasRecentlyProcessedMessage(element, messageText)) {
+            element.setAttribute('data-robokj-processed', 'true');
+            return;
+        }
+
         // Stringent URL Validation: The main message text must be purely the URL itself.
         // If there's extra text (like "Here is my song" or "On Stage:"), ignore the link entirely.
         if (messageText.includes(' ') || !messageText.startsWith('http')) {

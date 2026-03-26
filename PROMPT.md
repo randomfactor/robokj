@@ -21,3 +21,7 @@ Follow this specific structure for organization:
 3. Set up `src/popup/index.html` as the default popup entry.
 4. Create a background service worker in `src/background/index.ts`.
 5. Ensure the `manifest.json` in `/public` correctly references these entry points.
+
+## Environment Notes
+- Node is managed with nvm.
+- npm path: `/home/randall/.nvm/versions/node/v24.14.0/bin/npm`.

@@ -15,7 +15,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = false;
+        this.seedTestData = true;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {
@@ -31,6 +31,10 @@ export class BackgroundService {
         try {
             const state = await getKState();
             if (!state || !state.currentSongStartTimeMs || !state.currentSongTimeoutDurationMs) return;
+            if (state.mode === 'manual') {
+                this.clearSongTimeout();
+                return;
+            }
 
             const timeElapsed = Date.now() - state.currentSongStartTimeMs;
             // 1-second buffer leeway
@@ -133,7 +137,13 @@ export class BackgroundService {
             return true;
         }
         if (message.type === 'RESTART_VIDEO') {
-            handleRestartVideo(this, message.payload?.w2gId, respond);
+            getKState().then(state => {
+                if (state?.mode === 'manual' && message.payload?.fromChat) {
+                    respond({ success: false, error: 'The /restart command is disabled in manual mode.' });
+                } else {
+                    handleRestartVideo(this, message.payload?.w2gId, respond);
+                }
+            });
             return true;
         }
         if (message.type === 'SELF_DESTRUCT') {
@@ -216,7 +226,13 @@ export class BackgroundService {
     private async _handleVideoStarted(sendResponse: (response: MessageResponse) => void) {
         try {
             const show = await getKShow();
-            const state = await getKState() || { songsStarted: 0 };
+            const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
+
+            if (state.mode === 'manual') {
+                console.log('RoboKJ: Manual mode enabled. Ignoring VIDEO_STARTED.');
+                sendResponse({ success: true, data: 'Manual mode enabled. Ignoring.' });
+                return;
+            }
 
             const maxDuration = show?.maxSongDurationSeconds || 270;
             let restarts = state.currentSongRestartsUsed || 0;
@@ -299,6 +315,12 @@ export class BackgroundService {
         try {
             const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
             state.mode = state.mode === 'auto' ? 'manual' : 'auto';
+            
+            if (state.mode === 'manual') {
+                this.clearSongTimeout();
+                state.currentSongTimeoutDurationMs = 0;
+            }
+
             await setKState(state);
             console.log(`RoboKJ: Mode toggled to ${state.mode}`);
             sendResponse({ success: true, data: { mode: state.mode } });

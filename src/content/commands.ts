@@ -1,6 +1,16 @@
 import { MessageAction } from '../types';
 import { sendToAll } from './w2g-client';
 
+function extractUrlPart(url: string): string {
+    const beforeQuery = url.split('?')[0];
+    const slashParts = beforeQuery.split('/');
+    let result = slashParts[slashParts.length - 1];
+    if (result === '' && slashParts.length > 1) {
+        result = slashParts[slashParts.length - 2];
+    }
+    return result || '(URL)';
+}
+
 export function processMessageElement(element: Element) {
     // Prevent duplicate processing if we already successfully pulled the data
     if (element.getAttribute('data-robokj-processed')) {
@@ -102,9 +112,9 @@ export function processMessageElement(element: Element) {
                         const queuedSongs = requests.requests.slice(requests.nextIndex);
                         sendToAll(`@${stageName}'s Queue:`);
                         queuedSongs.forEach((req: any, idx: number) => {
-                            // Adding a slight delay might be necessary if Watch2Gether drops rapid messages
-                            // but let's try direct consecutive calls first
-                            setTimeout(() => sendToAll(`${idx + 1}. ${req.title}`), (idx + 1) * 200);
+                            let title = req.title || 'Unknown Song';
+                            if (title.startsWith('http')) title = extractUrlPart(title);
+                            setTimeout(() => sendToAll(`${idx + 1}. ${title}`), (idx + 1) * 200);
                         });
                     }
                 } else if (response && !response.success && response.error === 'User is not registered.') {
@@ -152,7 +162,9 @@ export function processMessageElement(element: Element) {
                         const historySongs = requests.requests.slice(0, requests.nextIndex);
                         sendToAll(`@${stageName}'s History:`);
                         historySongs.forEach((req: any, idx: number) => {
-                            setTimeout(() => sendToAll(`${idx + 1}. ${req.title}`), (idx + 1) * 200);
+                            let title = req.title || 'Unknown Song';
+                            if (title.startsWith('http')) title = extractUrlPart(title);
+                            setTimeout(() => sendToAll(`${idx + 1}. ${title}`), (idx + 1) * 200);
                         });
                     }
                 } else if (response && !response.success && response.error === 'User is not registered.') {
@@ -212,7 +224,7 @@ export function processMessageElement(element: Element) {
 
         const message: MessageAction = {
             type: 'RESTART_VIDEO',
-            payload: { w2gId }
+            payload: { w2gId, fromChat: true }
         };
 
         if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
@@ -283,6 +295,13 @@ export function processMessageElement(element: Element) {
     const linkElement = element.querySelector('a.italic.hover\\:underline') as HTMLAnchorElement;
 
     if (linkElement && linkElement.href) {
+        // Stringent URL Validation: The main message text must be purely the URL itself.
+        // If there's extra text (like "Here is my song" or "On Stage:"), ignore the link entirely.
+        if (messageText.includes(' ') || !messageText.startsWith('http')) {
+            console.log('RoboKJ: Ignored link message with extra text:', messageText);
+            return;
+        }
+
         // Find the actual URL (which might be the raw string text in the .break-words div above it, or the href value itself)
         const songUrlDiv = element.querySelector('.break-words') as HTMLDivElement;
 
@@ -290,6 +309,16 @@ export function processMessageElement(element: Element) {
         const songUrl = (songUrlDiv && songUrlDiv.textContent && songUrlDiv.textContent.includes('http'))
             ? songUrlDiv.textContent.trim()
             : (linkElement.getAttribute('href') || linkElement.href);
+            
+        const isValidUrl = songUrl.startsWith('https://www.youtube.com/') || 
+                           songUrl.startsWith('https://youtu.be/') || 
+                           songUrl.startsWith('https://vimeo.com/');
+        
+        if (!isValidUrl) {
+            console.log('RoboKJ: Ignored link message, URL not in allowed domains:', songUrl);
+            return;
+        }
+
         const songTitle = linkElement.textContent?.trim() || 'Unknown Title';
 
         let w2gId = 'admin'; // Default per user request if missing
@@ -329,7 +358,9 @@ export function processMessageElement(element: Element) {
                     if (response.error === 'limit_reached' && response.data) {
                         sendToAll(`Sorry ${response.data.stageName}, maximum 5 songs reached`);
                     } else if (response.error === 'duplicate' && response.data) {
-                        sendToAll(`Sorry ${response.data.stageName}, "${response.data.title}" is already in the queue`);
+                        const { stageName, claimedBy } = response.data;
+                        const claimMsg = stageName === claimedBy ? 'you' : claimedBy;
+                        sendToAll(`Sorry ${stageName}, that song is already claimed by ${claimMsg}`);
                     } else if (response.error === 'Database error') {
                         sendToAll(`Error: out of resources`);
                     } else if (response.error === 'User is not registered.') {

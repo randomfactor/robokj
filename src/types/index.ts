@@ -61,7 +61,7 @@ export type MessageAction =
     | { type: 'REACTIVATE_SINGER'; stageName: string }
     | { type: 'NEXT_SINGER' }
     | { type: 'BUMP_SINGER' }
-    | { type: 'RESTART_VIDEO'; payload?: { w2gId: string } }
+    | { type: 'RESTART_VIDEO'; payload?: { w2gId?: string, fromChat?: boolean } }
     | { type: 'SELF_DESTRUCT' }
     | { type: 'BROADCAST_MESSAGE'; payload: { text: string } }
     | { type: 'VIDEO_ENDED' }

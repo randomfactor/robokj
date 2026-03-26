@@ -1,0 +1,206 @@
+{
+  "appState": {
+    "roster": {
+      "singers": [
+        {
+          "singer": {
+            "w2gId": "Evan",
+            "stageName": "Evan"
+          },
+          "status": "ignored",
+          "bumpCount": 0
+        },
+        {
+          "singer": {
+            "w2gId": "Ron Ablang",
+            "stageName": "Ron Ablang"
+          },
+          "status": "ignored",
+          "bumpCount": 0
+        },
+        {
+          "singer": {
+            "w2gId": "User-RBMFE",
+            "stageName": "marion"
+          },
+          "status": "ignored",
+          "bumpCount": 1
+        },
+        {
+          "singer": {
+            "w2gId": "admin",
+            "stageName": "RoboKJ"
+          },
+          "status": "active",
+          "bumpCount": 0
+        },
+        {
+          "singer": {
+            "w2gId": "User-BDQRI",
+            "stageName": "Rosario"
+          },
+          "status": "active",
+          "bumpCount": 0
+        },
+        {
+          "singer": {
+            "w2gId": "User-ALPHA",
+            "stageName": "Randall K"
+          },
+          "status": "active",
+          "bumpCount": 0
+        },
+        {
+          "singer": {
+            "w2gId": "Keith",
+            "stageName": "Keith"
+          },
+          "status": "active",
+          "bumpCount": 0
+        }
+      ]
+    },
+    "show": {
+      "venueName": "RoboKJ",
+      "startTimeUTC": "",
+      "durationInHours": 4,
+      "streamKey": "ojwj0wdd41psx7gcm9",
+      "mode": "manual",
+      "maxSongDurationSeconds": 270
+    },
+    "state": {
+      "songsStarted": 10,
+      "currentSongTimeoutDurationMs": 0,
+      "currentSongRestartsUsed": 0,
+      "currentSongStartTimeMs": 1774490597325,
+      "mode": "manual"
+    }
+  },
+  "requests": {
+    "Keith": {
+      "singer": {
+        "w2gId": "Keith",
+        "stageName": "Keith"
+      },
+      "nextIndex": 3,
+      "requests": [
+        {
+          "title": "Neil Diamond - America - Karaoke Version from Zoom Karaoke",
+          "url": "https://www.youtube.com/watch?v=AuIXJyflxM0&list=RDAuIXJyflxM0&start_radio=1"
+        },
+        {
+          "title": "The Animals - We Gotta Get Out Of This Place - Karaoke Version from Zoom Karaoke",
+          "url": "https://www.youtube.com/watch?v=jJIwVzR3zFQ&list=RDjJIwVzR3zFQ&start_radio=1"
+        },
+        {
+          "title": "Billy J  Kramer & The Dakotas - Bad To Me - Karaoke Version from Zoom Karaoke",
+          "url": "https://www.youtube.com/watch?v=PdW2ODGDD5c&list=RDPdW2ODGDD5c&start_radio=1"
+        },
+        {
+          "title": "Dion   Abraham Martin  John SC 2 HD Karaoke PK02432",
+          "url": "https://www.youtube.com/watch?v=7dDjshzhgKk&list=RD7dDjshzhgKk&start_radio=1"
+        }
+      ]
+    },
+    "Randall K": {
+      "singer": {
+        "w2gId": "User-ALPHA",
+        "stageName": "Randall K"
+      },
+      "nextIndex": 2,
+      "requests": [
+        {
+          "title": "Fountains Of Wayne - Stacy's Mom - Karaoke Version from Zoom Karaoke",
+          "url": "https://www.youtube.com/watch?v=ZxlEyHsh6V4"
+        },
+        {
+          "title": "Tommy Tutone - 867-5309/Jenny (Karaoke Version)",
+          "url": "https://www.youtube.com/watch?v=joJgqYOziYw"
+        },
+        {
+          "title": "Garbage - Stupid Girl - Karaoke Version from Zoom Karaoke",
+          "url": "https://www.youtube.com/watch?v=GnBbB7Eft9A"
+        },
+        {
+          "title": "https://w2g.tv/?r=ojwj0wdd41psx7gcm9",
+          "url": "https://w2g.tv/?r=ojwj0wdd41psx7gcm9"
+        },
+        {
+          "title": "https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1",
+          "url": "https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1"
+        }
+      ]
+    },
+    "RoboKJ": {
+      "singer": {
+        "w2gId": "admin",
+        "stageName": "RoboKJ"
+      },
+      "nextIndex": 1,
+      "requests": [
+        {
+          "title": "RoboKJ Instructions",
+          "url": "https://youtu.be/MEbs-gGfD2I"
+        },
+        {
+          "title": "https://w2g.tv/?r=ojwj0wdd41psx7gcm9",
+          "url": "Sorry Randall K, \"https://w2g.tv/?r=ojwj0wdd41psx7gcm9\" is already in the queue"
+        },
+        {
+          "title": "https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1",
+          "url": "Sorry marion, \"https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1\" is already in the queue"
+        },
+        {
+          "title": "https://w2g.tv/?r=ojwj0wdd41psx7gcm9",
+          "url": "Sorry RoboKJ, \"https://w2g.tv/?r=ojwj0wdd41psx7gcm9\" is already in the queue"
+        },
+        {
+          "title": "https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1",
+          "url": "On Stage: marion singing \"https://www.youtube.com/watch?v=rGTHC4I_JPk&list=RDrGTHC4I_JPk&start_radio=1\""
+        },
+        {
+          "title": "https://w2g.tv/?r=ojwj0wdd41psx7gcm9",
+          "url": "On Stage: RoboKJ singing \"https://w2g.tv/?r=ojwj0wdd41psx7gcm9\""
+        }
+      ]
+    },
+    "Ron Ablang": {
+      "singer": {
+        "w2gId": "Ron Ablang",
+        "stageName": "Ron Ablang"
+      },
+      "nextIndex": 2,
+      "requests": [
+        {
+          "title": "Baby Can I Hold You - Tracy Chapman (KARAOKE)",
+          "url": "https://www.youtube.com/watch?v=p0Mk2f1LO-4&list=RDp0Mk2f1LO-4&start_radio=1"
+        },
+        {
+          "title": "Eric Clapton - Tears In Heaven Karaoke Acoustic Guitar",
+          "url": "https://www.youtube.com/watch?v=4FhSp1roLHE&list=RD4FhSp1roLHE&start_radio=1"
+        }
+      ]
+    },
+    "Rosario": {
+      "singer": {
+        "w2gId": "User-BDQRI",
+        "stageName": "Rosario"
+      },
+      "nextIndex": 1,
+      "requests": [
+        {
+          "title": "LET'S STAY TOGETHER - Al Green (FEMALE KEY KARAOKE VERSION)",
+          "url": "https://youtu.be/ZoW3XfLFgmw?si=puhEgF67BIygjgaF"
+        }
+      ]
+    },
+    "marion": {
+      "singer": {
+        "w2gId": "User-RBMFE",
+        "stageName": "marion"
+      },
+      "nextIndex": 0,
+      "requests": []
+    }
+  }
+}

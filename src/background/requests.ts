@@ -105,17 +105,19 @@ export async function handleAddSongRequest(w2gId: string, payload: any, sendResp
 
         // Global duplicate check across all singers (past and present queue)
         let isDuplicate = false;
+        let claimedBy = '';
         for (const rosterSinger of roster.singers) {
             const singerRequests = await getKSongRequests(rosterSinger.singer.stageName);
             if (singerRequests && singerRequests.requests.some(req => req.url === payload.url)) {
                 isDuplicate = true;
+                claimedBy = rosterSinger.singer.stageName;
                 break;
             }
         }
 
         if (isDuplicate) {
-            console.warn(`RoboKJ: Song ${payload.url} is already requested/performed in this show.`);
-            sendResponse({ success: false, error: 'duplicate', data: { stageName, title: payload.title } });
+            console.warn(`RoboKJ: Song ${payload.url} is already requested/performed by ${claimedBy} in this show.`);
+            sendResponse({ success: false, error: 'duplicate', data: { stageName, claimedBy, title: payload.title } });
             return;
         }
 

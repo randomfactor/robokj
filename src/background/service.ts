@@ -12,6 +12,7 @@ export class BackgroundService {
     options: BackgroundServiceOptions;
     seedTestData: boolean;
     private _fallbackTimeoutId?: ReturnType<typeof setTimeout>;
+    private _showStartTimeoutId?: ReturnType<typeof setTimeout>;
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
@@ -23,7 +24,59 @@ export class BackgroundService {
                     console.log('RoboKJ: song_timeout alarm fired.');
                     this.checkTimeoutAndRotate();
                 }
+                if (alarm.name === 'show_start') {
+                    console.log('RoboKJ: show_start alarm fired.');
+                    this.triggerShowStart();
+                }
             });
+        }
+    }
+
+    private clearShowStartTimer() {
+        if (typeof chrome !== 'undefined' && chrome.alarms) chrome.alarms.clear('show_start');
+        if (this._showStartTimeoutId) {
+            clearTimeout(this._showStartTimeoutId);
+            this._showStartTimeoutId = undefined;
+        }
+    }
+
+    private scheduleShowStart(startTimeMs: number) {
+        this.clearShowStartTimer();
+        const delayMs = Math.max(0, startTimeMs - Date.now());
+
+        if (typeof chrome !== 'undefined' && chrome.alarms) {
+            chrome.alarms.create('show_start', { delayInMinutes: delayMs / 60000 });
+        }
+
+        // Fallback scheduling because MV3 alarms can be delayed/inexact.
+        this._showStartTimeoutId = setTimeout(() => this.triggerShowStart(), delayMs);
+    }
+
+    private async triggerShowStart() {
+        try {
+            const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
+            if (state.mode !== 'auto') return;
+
+            const show = await getKShow();
+            const startTimeMs = show?.startTimeUTC ? Date.parse(show.startTimeUTC) : NaN;
+            const durationHours = Number(show?.durationInHours ?? 0);
+            const endTimeMs = Number.isFinite(startTimeMs) ? startTimeMs + durationHours * 60 * 60 * 1000 : NaN;
+
+            if (Number.isFinite(endTimeMs) && Date.now() > endTimeMs) {
+                const venue = show?.venueName || 'venue';
+                this.broadcastMessage(`(${venue}) show has expired`);
+                state.mode = 'manual';
+                state.awaitingAutoResume = false;
+                await setKState(state);
+                this.clearSongTimeout();
+                this.clearShowStartTimer();
+                return;
+            }
+
+            this.clearShowStartTimer();
+            await handleNextSinger(this, () => { });
+        } catch (error) {
+            console.error('RoboKJ: Failed to trigger scheduled show start:', error);
         }
     }
 
@@ -93,7 +146,7 @@ export class BackgroundService {
             return true;
         }
         if (message.type === 'ADD_SONG_REQUEST') {
-            handleAddSongRequest(message.w2gId, message.payload, respond);
+            handleAddSongRequest(this, message.w2gId, message.payload, respond);
             return true;
         }
         if (message.type === 'GET_SHOW_INFO') {
@@ -242,6 +295,7 @@ export class BackgroundService {
 
             state.currentSongStartTimeMs = Date.now();
             state.currentSongTimeoutDurationMs = activeTimeout * 1000;
+            state.awaitingAutoResume = false;
             await setKState(state);
 
             if (typeof chrome !== 'undefined' && chrome.alarms) {
@@ -314,11 +368,51 @@ export class BackgroundService {
     private async _handleToggleMode(sendResponse: (response: MessageResponse) => void) {
         try {
             const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
+            const previousMode = state.mode || 'manual';
             state.mode = state.mode === 'auto' ? 'manual' : 'auto';
             
             if (state.mode === 'manual') {
                 this.clearSongTimeout();
+                this.clearShowStartTimer();
                 state.currentSongTimeoutDurationMs = 0;
+                state.awaitingAutoResume = false;
+            }
+
+            if (previousMode === 'manual' && state.mode === 'auto') {
+                const show = await getKShow();
+                const startTimeMs = show?.startTimeUTC ? Date.parse(show.startTimeUTC) : NaN;
+                const durationHours = Number(show?.durationInHours ?? 0);
+                const endTimeMs = Number.isFinite(startTimeMs) ? startTimeMs + durationHours * 60 * 60 * 1000 : NaN;
+                const now = Date.now();
+                const venue = show?.venueName || 'venue';
+
+                // Scenario A: Show window already expired.
+                if (Number.isFinite(endTimeMs) && now > endTimeMs) {
+                    this.broadcastMessage(`(${venue}) show has expired`);
+                    state.mode = 'manual';
+                    state.awaitingAutoResume = false;
+                    this.clearSongTimeout();
+                    this.clearShowStartTimer();
+                    await setKState(state);
+                    sendResponse({ success: true, data: { mode: state.mode } });
+                    return;
+                }
+
+                // Scenario B: Before start, schedule the first singer trigger.
+                if (Number.isFinite(startTimeMs) && now < startTimeMs) {
+                    this.scheduleShowStart(startTimeMs);
+                } else {
+                    this.clearShowStartTimer();
+
+                    // Scenario C: At/after start, start immediately if show has not effectively started.
+                    const noSongPlaying = !state.currentSongStartTimeMs || !state.currentSongTimeoutDurationMs;
+                    if (state.songsStarted === 0 || noSongPlaying) {
+                        await setKState(state);
+                        await handleNextSinger(this, () => { });
+                        sendResponse({ success: true, data: { mode: state.mode } });
+                        return;
+                    }
+                }
             }
 
             await setKState(state);

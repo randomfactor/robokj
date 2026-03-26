@@ -1,5 +1,7 @@
 import { MessageResponse, KRoster, KSongRequests } from '../types';
-import { getKRoster, setKRoster, getKSongRequests, setKSongRequests } from './db';
+import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKState } from './db';
+import { handleNextSinger } from './roster';
+import type { BackgroundService } from './service';
 
 export async function handleGetRequestList(stageName: string, sendResponse: (response: MessageResponse) => void) {
     try {
@@ -62,7 +64,7 @@ export async function handleDeleteQueueForUser(w2gId: string, sendResponse: (res
     }
 }
 
-export async function handleAddSongRequest(w2gId: string, payload: any, sendResponse: (response: MessageResponse) => void) {
+export async function handleAddSongRequest(service: BackgroundService, w2gId: string, payload: any, sendResponse: (response: MessageResponse) => void) {
     try {
         console.log('Received song request:', payload, 'for w2gId:', w2gId);
 
@@ -129,6 +131,13 @@ export async function handleAddSongRequest(w2gId: string, payload: any, sendResp
 
         // Just return success. We no longer auto-play it here.
         sendResponse({ success: true, data: { stageName, title: payload.title, count: pendingRequests + 1 } });
+
+        const state = await getKState();
+        const noSongPlaying = !state?.currentSongStartTimeMs || !state?.currentSongTimeoutDurationMs;
+        if (state?.mode === 'auto' && (noSongPlaying || state.awaitingAutoResume)) {
+            console.log('RoboKJ: Auto mode is idle. Starting next singer after new request.');
+            await handleNextSinger(service, () => { });
+        }
 
     } catch (error: any) {
         console.error('RoboKJ: Error handling song request:', error);

@@ -43,6 +43,7 @@ export interface KState {
     currentSongStartTimeMs?: number
     currentSongTimeoutDurationMs?: number
     currentSongRestartsUsed?: number
+    awaitingAutoResume?: boolean
 }
 
 // --- Message Types ---

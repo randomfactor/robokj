@@ -1,6 +1,6 @@
 import { MessageResponse, KRoster, KSinger, KSingerStatus } from '../types';
 import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKShow, getKState, setKState } from './db';
-import { BackgroundService } from './service';
+import type { BackgroundService } from './service';
 
 export async function handleGetRoster(sendResponse: (response: MessageResponse) => void) {
     try {
@@ -229,9 +229,30 @@ export async function handleNextSinger(service: BackgroundService, sendResponse:
     try {
         const roster = await getKRoster();
         const state = await getKState() || { songsStarted: 0 };
+        const show = await getKShow();
+
+        const startTimeMs = show?.startTimeUTC ? Date.parse(show.startTimeUTC) : NaN;
+        const durationHours = Number(show?.durationInHours ?? 0);
+        const endTimeMs = Number.isFinite(startTimeMs) ? startTimeMs + durationHours * 60 * 60 * 1000 : NaN;
+
+        if (state.mode === 'auto' && Number.isFinite(endTimeMs) && Date.now() > endTimeMs) {
+            const venue = show?.venueName || 'venue';
+            service.broadcastMessage(`Thank you for attending the ${venue} show!`);
+            state.mode = 'manual';
+            state.awaitingAutoResume = false;
+            state.currentSongTimeoutDurationMs = 0;
+            await setKState(state);
+            service.clearSongTimeout();
+            sendResponse({ success: false, error: 'Show has ended.' });
+            return;
+        }
 
         if (!roster) {
             service.broadcastMessage('There are no active singers in the roster.');
+            if (state.mode === 'auto') {
+                state.awaitingAutoResume = true;
+                await setKState(state);
+            }
             sendResponse({ success: false, error: 'No roster found' });
             return;
         }
@@ -287,6 +308,10 @@ export async function handleNextSinger(service: BackgroundService, sendResponse:
 
         if (!nextValidFound) {
             service.broadcastMessage('There are no active singers in the roster.');
+            if (state.mode === 'auto') {
+                state.awaitingAutoResume = true;
+                await setKState(state);
+            }
             sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
             return;
         }
@@ -298,6 +323,7 @@ export async function handleNextSinger(service: BackgroundService, sendResponse:
 
         // Increment the counter so subsequent clicks rotate properly
         state.songsStarted += 1;
+        state.awaitingAutoResume = false;
         await setKState(state);
 
         // Start the next song

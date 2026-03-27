@@ -9,9 +9,9 @@
     "file": "assets/index-Dob3nYDb.js",
     "name": "index"
   },
-  "_index.ts-loader-CM3wKTRd.js": {
-    "file": "assets/index.ts-loader-CM3wKTRd.js",
-    "src": "_index.ts-loader-CM3wKTRd.js"
+  "_index.ts-loader-BHsV-TJM.js": {
+    "file": "assets/index.ts-loader-BHsV-TJM.js",
+    "src": "_index.ts-loader-BHsV-TJM.js"
   },
   "src/background/index.ts": {
     "file": "assets/index.ts-GKjsZUS1.js",
@@ -23,7 +23,7 @@
     ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-DAQiGsrt.js",
+    "file": "assets/index.ts-COE6QeMp.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true,
@@ -32,12 +32,12 @@
     ]
   },
   "src/popup/index.html": {
-    "file": "assets/index.html-QqlOshJ5.js",
+    "file": "assets/index.html-CNNQ1JVE.js",
     "name": "index.html",
     "src": "src/popup/index.html",
     "isEntry": true,
     "css": [
-      "assets/index-mhhucGy7.css"
+      "assets/index-CGe70nbW.css"
     ]
   }
 }

@@ -49,10 +49,7 @@ async function emitMessage(message: string): Promise<void> {
         return;
     }
 
-    const token = await nextOutboundToken();
-    const taggedMessage = `${message} ${token}`;
-
-    chatInput.value = taggedMessage;
+    chatInput.value = message;
     chatInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     chatInput.dispatchEvent(new Event('w2gsubmit', { bubbles: true, cancelable: true }));
 }
@@ -60,7 +57,15 @@ async function emitMessage(message: string): Promise<void> {
 // Function to emit a message into the chat container
 export function sendToAll(message: string) {
     sendQueue = sendQueue
-        .then(() => emitMessage(message))
+        .then(async () => {
+            const lines = message.split('\n');
+            const token = await nextOutboundToken();
+            lines[0] = `${lines[0]} ${token}`;
+
+            for (const line of lines) {
+                await emitMessage(line);
+            }
+        })
         .catch((error) => {
             console.warn('RoboKJ: Failed to emit chat message.', error);
         });

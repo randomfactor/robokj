@@ -15,18 +15,23 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (message.type === 'ANNOUNCE_SINGERS') {
             const { onStage, onStageSong, nextUp, afterThat } = message.payload;
-            
+
+            const announcements: string[] = [];
             if (onStage) {
                 const songText = onStageSong ? ` singing "${onStageSong}"` : '';
-                setTimeout(() => sendToAll(`On Stage: ${onStage}${songText}`), 200);
+                announcements.push(`On Stage: ${onStage}${songText}`);
             }
             if (nextUp) {
-                setTimeout(() => sendToAll(`Next Up: ${nextUp}`), 1000);
+                announcements.push(`Next Up: ${nextUp}`);
             }
             if (afterThat) {
-                setTimeout(() => sendToAll(`After That: ${afterThat}`), 1800);
+                announcements.push(`After That: ${afterThat}`);
             }
-            
+
+            if (announcements.length > 0) {
+                setTimeout(() => sendToAll(announcements.join('\n')), 200);
+            }
+
             sendResponse({ success: true });
             return true;
         }

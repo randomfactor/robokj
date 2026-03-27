@@ -159,12 +159,12 @@ export function processMessageElement(element: Element) {
                         sendToAll(`@${stageName}, you have no songs queued.`);
                     } else {
                         const queuedSongs = requests.requests.slice(requests.nextIndex);
-                        sendToAll(`@${stageName}'s Queue:`);
-                        queuedSongs.forEach((req: any, idx: number) => {
+                        const queueLines = queuedSongs.map((req: any, idx: number) => {
                             let title = req.title || 'Unknown Song';
                             if (title.startsWith('http')) title = extractUrlPart(title);
-                            setTimeout(() => sendToAll(`${idx + 1}. ${title}`), (idx + 1) * 200);
+                            return `${idx + 1}. ${title}`;
                         });
+                        sendToAll([`@${stageName}'s Queue:`, ...queueLines].join('\n'));
                     }
                 } else if (response && !response.success && response.error === 'User is not registered.') {
                     // Do nothing or optionally notify
@@ -212,12 +212,12 @@ export function processMessageElement(element: Element) {
                         sendToAll(`@${stageName}, you have no song history.`);
                     } else {
                         const historySongs = requests.requests.slice(0, requests.nextIndex);
-                        sendToAll(`@${stageName}'s History:`);
-                        historySongs.forEach((req: any, idx: number) => {
+                        const historyLines = historySongs.map((req: any, idx: number) => {
                             let title = req.title || 'Unknown Song';
                             if (title.startsWith('http')) title = extractUrlPart(title);
-                            setTimeout(() => sendToAll(`${idx + 1}. ${title}`), (idx + 1) * 200);
+                            return `${idx + 1}. ${title}`;
                         });
+                        sendToAll([`@${stageName}'s History:`, ...historyLines].join('\n'));
                     }
                 } else if (response && !response.success && response.error === 'User is not registered.') {
                     // Do nothing or optionally notify
@@ -339,10 +339,8 @@ export function processMessageElement(element: Element) {
                     `"/restart" : restart video (lose ${penaltySeconds}s)`,
                     '"/help" : view this message'
                 ];
-                
-                helpMessages.forEach((msg, idx) => {
-                    setTimeout(() => sendToAll(msg), idx * 200);
-                });
+
+                sendToAll(helpMessages.join('\n'));
             });
         } catch (error) {
             console.warn('RoboKJ Context Error:', error);

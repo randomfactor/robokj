@@ -21,11 +21,11 @@
 
  ## Entered 2026-03-27
 
- - [ ] The purpose of the mutation observer on the W2G chat window (content/chat-observer.ts) is to identify new commands and requests from users and send the appropriate message to the background worker that will satisfy the command or request. The system is losing track of which items are new and is reprocessing commands and requests unnecessarily. This cascades in the chat window with additional messages added in response (using sendToAll function) causing more disturbances that the mutation observer processes and even more reprocessing of old commands and requests.
+ - [x] The purpose of the mutation observer on the W2G chat window (content/chat-observer.ts) is to identify new commands and requests from users and send the appropriate message to the background worker that will satisfy the command or request. The system is losing track of which items are new and is reprocessing commands and requests unnecessarily. This cascades in the chat window with additional messages added in response (using sendToAll function) causing more disturbances that the mutation observer processes and even more reprocessing of old commands and requests.
    - Plan a way to track commands and requests that have been processed so that they are processed once in the order of arrival and exactly once, even if many changes are found by the mutation observer.
    - An example of the system responding additional times can be found in the html collected using the chrome debugger in content/working-data/w2g-chat-1.html.
    - Example of user song request: <div class="mucmsg w2g-they mr-auto   shrink-0 flex items-start mb-2 max-w-[95%] [&amp;.w2g-followup]:-mt-1 w2g-message" data-robokj-processed="true">
-                        <div class="shrink-0 w-10 h-10 mr-2.5 [.w2g-followup_&amp;]:hidden rounded-full overflow-hidden bg-[url('/img/backgrounds/user_bg.png')] bg-cover">
+                        <div class="shrink-0 w-10 h-10 mr-2.5 [.w2g-followup_&amp;]:hidden rounded-full overflow-hidden  bg-cover">
                                 <img class="h-10 w-10 inline-block" src="https://static.w2g.tv/static/w2guser-default.png" alt="User-YENGO">
                             </div>        
                         <div class=" cursor-pointer relative max-w-full mt-1 [.w2g-followup_&amp;]:ml-[3.25rem] [.w2g-followup_&amp;]:mt-0">
@@ -64,7 +64,7 @@
                     </div>
   - All user commands have text beginning with a slash "/" such as "/register Chad"
   - Example of user command: <div class="mucmsg w2g-they mr-auto   shrink-0 flex items-start mb-2 max-w-[95%] [&amp;.w2g-followup]:-mt-1 w2g-message" data-robokj-processed="true">
-                        <div class="shrink-0 w-10 h-10 mr-2.5 [.w2g-followup_&amp;]:hidden rounded-full overflow-hidden bg-[url('/img/backgrounds/user_bg.png')] bg-cover">
+                        <div class="shrink-0 w-10 h-10 mr-2.5 [.w2g-followup_&amp;]:hidden rounded-full overflow-hidden  bg-cover">
                                 <img class="h-10 w-10 inline-block" src="https://static.w2g.tv/static/w2guser-default.png" alt="User-YENGO">
                             </div>        
                         <div class=" cursor-pointer relative max-w-full mt-1 [.w2g-followup_&amp;]:ml-[3.25rem] [.w2g-followup_&amp;]:mt-0">

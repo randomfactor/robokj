@@ -62,7 +62,7 @@ const SEED_SETS: Record<0 | 1 | 2, SeedSet> = {
     2: {
         show: {
             venueName: 'Long Seed Dev3',
-            maxSongDurationSeconds: 9,
+            maxSongDurationSeconds: 270,
             durationInHours: 3,
             streamKey: 'cz1v5cqlbp9uij7hwy',
         },

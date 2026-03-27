@@ -14,7 +14,7 @@
     "src": "_index.ts-loader-CM3wKTRd.js"
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-2H5fJObO.js",
+    "file": "assets/index.ts-GKjsZUS1.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true,
@@ -32,12 +32,12 @@
     ]
   },
   "src/popup/index.html": {
-    "file": "assets/index.html-B1XTa7Un.js",
+    "file": "assets/index.html-QqlOshJ5.js",
     "name": "index.html",
     "src": "src/popup/index.html",
     "isEntry": true,
     "css": [
-      "assets/index-D2gfiACy.css"
+      "assets/index-mhhucGy7.css"
     ]
   }
 }

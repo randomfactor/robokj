@@ -1,6 +1,46 @@
 import { processMessageElement } from './commands';
 
 let chatObserverRetries = 0;
+const AC_TOKEN_REGEX = /\bAC\d{6,}\b/;
+const MAX_RECENT_SCAN_MESSAGES = 30;
+
+function findTopLevelMessageElement(node: Node): Element | null {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        if (element.classList.contains('mucmsg')) {
+            return element;
+        }
+
+        const closestParentMessage = element.closest('.mucmsg');
+        if (closestParentMessage) {
+            return closestParentMessage;
+        }
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+        const parentMessage = node.parentElement?.closest('.mucmsg');
+        if (parentMessage) {
+            return parentMessage;
+        }
+    }
+
+    return null;
+}
+
+function getMessageText(messageElement: Element): string {
+    return messageElement.querySelector('.break-words')?.textContent?.trim() || '';
+}
+
+function getMessagesAfterLatestToken(messages: Element[]): Element[] {
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const messageText = getMessageText(messages[i]);
+        if (AC_TOKEN_REGEX.test(messageText)) {
+            return messages.slice(i + 1);
+        }
+    }
+
+    return messages.slice(Math.max(0, messages.length - MAX_RECENT_SCAN_MESSAGES));
+}
 
 // Function to start observing the chat container
 export function startObservingChat() {
@@ -17,38 +57,46 @@ export function startObservingChat() {
 
     console.log('RoboKJ: Found chat container. Starting observer.');
 
+    const pendingMessages = new Set<Element>();
+    let flushScheduled = false;
+
+    const enqueueCandidate = (node: Node) => {
+        const messageElement = findTopLevelMessageElement(node);
+        if (messageElement) {
+            pendingMessages.add(messageElement);
+            if (!flushScheduled) {
+                flushScheduled = true;
+                setTimeout(flushPending, 0);
+            }
+        }
+    };
+
+    const flushPending = () => {
+        flushScheduled = false;
+
+        if (pendingMessages.size === 0) {
+            return;
+        }
+
+        const allMessages = Array.from(chatContainer.querySelectorAll('.mucmsg'));
+        const candidateWindow = getMessagesAfterLatestToken(allMessages);
+
+        for (const messageElement of candidateWindow) {
+            processMessageElement(messageElement);
+        }
+
+        pendingMessages.clear();
+    };
+
     // Create an observer instance linked to the callback function
     const observer = new MutationObserver((mutationsList) => {
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList') {
                 mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        const element = node as Element;
-
-                        // If it's a top-level message element
-                        if (element.classList.contains('mucmsg')) {
-                            processMessageElement(element);
-                        } else {
-                            // If it's a nested element being lazily rendered inside an existing mucmsg
-                            const parentMsg = element.closest('.mucmsg');
-                            if (parentMsg) {
-                                processMessageElement(parentMsg);
-                            } else {
-                                // Sometimes messages are nested in other wrappers initially
-                                const messages = element.querySelectorAll('.mucmsg');
-                                messages.forEach(processMessageElement);
-                            }
-                        }
-                    }
+                    enqueueCandidate(node);
                 });
             } else if (mutation.type === 'characterData') {
-                // Sometime attributes/text change lazily
-                if (mutation.target.nodeType === Node.ELEMENT_NODE || mutation.target.nodeType === Node.TEXT_NODE) {
-                    const parentMsg = mutation.target.parentElement?.closest('.mucmsg');
-                    if (parentMsg) {
-                        processMessageElement(parentMsg);
-                    }
-                }
+                enqueueCandidate(mutation.target);
             }
         }
     });

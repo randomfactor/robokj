@@ -3,6 +3,7 @@ import { sendToAll } from './w2g-client';
 
 const RECENT_MESSAGE_TTL_MS = 15000;
 const MAX_RECENT_MESSAGE_KEYS = 800;
+const ROBO_KJ_TOKEN_REGEX = /\bAC\d{6,}\b/;
 const recentMessageKeys = new Map<string, number>();
 
 function cleanupRecentMessageKeys(now: number) {
@@ -23,42 +24,6 @@ function cleanupRecentMessageKeys(now: number) {
     }
 }
 
-function getPreferredDomMessageId(element: Element): string | null {
-    const directId = element.getAttribute('data-mid')
-        || element.getAttribute('data-id')
-        || element.getAttribute('data-message-id')
-        || element.id;
-    if (directId) {
-        return `dom:${directId}`;
-    }
-
-    const nestedWithId = element.querySelector('[data-mid], [data-id], [data-message-id], [id]');
-    if (!nestedWithId) {
-        return null;
-    }
-
-    const nestedId = nestedWithId.getAttribute('data-mid')
-        || nestedWithId.getAttribute('data-id')
-        || nestedWithId.getAttribute('data-message-id')
-        || nestedWithId.id;
-    return nestedId ? `dom:${nestedId}` : null;
-}
-
-function buildFallbackMessageFingerprint(element: Element, messageText: string): string {
-    const w2gId = element.querySelector('.overflow-clip')?.textContent?.trim() || 'unknown';
-
-    const timeNode = element.querySelector('time, .timestamp, [data-time], [datetime]');
-    const timeToken = timeNode?.getAttribute('datetime')
-        || timeNode?.getAttribute('data-time')
-        || timeNode?.textContent?.trim()
-        || '';
-
-    const prevText = element.previousElementSibling?.querySelector('.break-words')?.textContent?.trim() || '';
-    const nextText = element.nextElementSibling?.querySelector('.break-words')?.textContent?.trim() || '';
-
-    return `fp:${w2gId}|${messageText.trim()}|${timeToken}|${prevText}|${nextText}`;
-}
-
 function getSenderW2gId(element: Element): string {
     return element.querySelector('.overflow-clip')?.textContent?.trim() || 'unknown';
 }
@@ -67,10 +32,8 @@ function hasRecentlyProcessedMessage(element: Element, messageText: string): boo
     const now = Date.now();
     cleanupRecentMessageKeys(now);
 
-    // Treat command identity as sender + exact text first, then augment with stable DOM id/fingerprint.
-    const senderScopedKey = `cmd:${getSenderW2gId(element)}|${messageText}`;
-    const structuralKey = getPreferredDomMessageId(element) || buildFallbackMessageFingerprint(element, messageText);
-    const messageKey = `${senderScopedKey}|${structuralKey}`;
+    const senderScopedKey = `cmd:${getSenderW2gId(element)}|${messageText.trim()}`;
+    const messageKey = senderScopedKey;
     const previousTs = recentMessageKeys.get(messageKey);
 
     if (previousTs && now - previousTs <= RECENT_MESSAGE_TTL_MS) {
@@ -92,21 +55,20 @@ function extractUrlPart(url: string): string {
 }
 
 export function processMessageElement(element: Element) {
-    // Prevent duplicate processing if we already successfully pulled the data
-    if (element.getAttribute('data-robokj-processed')) {
-        return;
-    }
-
     // Look for the inner div containing the actual text message
     const messageTextDiv = element.querySelector('.break-words');
     if (!messageTextDiv) return;
 
-    const messageText = messageTextDiv.textContent || '';
+    const messageText = (messageTextDiv.textContent || '').trim();
+
+    // Ignore extension-generated tokened messages to avoid processing loops.
+    if (ROBO_KJ_TOKEN_REGEX.test(messageText)) {
+        return;
+    }
 
     // Check if the message is a registration command
     if (messageText.trim().startsWith('/register ')) {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -135,7 +97,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
@@ -165,7 +126,6 @@ export function processMessageElement(element: Element) {
     // Check if the message is a queue command
     if (messageText.trim() === '/q') {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -187,7 +147,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
@@ -220,7 +179,6 @@ export function processMessageElement(element: Element) {
     // Check if the message is a history command
     if (messageText.trim() === '/history') {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -242,7 +200,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
@@ -275,7 +232,6 @@ export function processMessageElement(element: Element) {
     // Check if the message is a delq command
     if (messageText.trim() === '/delq') {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -296,7 +252,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
@@ -316,7 +271,6 @@ export function processMessageElement(element: Element) {
     // Check if the message is a restart command
     if (messageText.trim() === '/restart') {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -337,7 +291,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
@@ -360,11 +313,9 @@ export function processMessageElement(element: Element) {
     const cmd = messageText.trim().toLowerCase();
     if (cmd === '/?' || cmd === '/help' || cmd === '/commands') {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
 
         if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
             console.warn('RoboKJ: Extension context invalidated. Please refresh the page.');
@@ -406,7 +357,6 @@ export function processMessageElement(element: Element) {
 
     if (linkElement && linkElement.href) {
         if (hasRecentlyProcessedMessage(element, messageText)) {
-            element.setAttribute('data-robokj-processed', 'true');
             return;
         }
 
@@ -458,7 +408,6 @@ export function processMessageElement(element: Element) {
             return;
         }
 
-        element.setAttribute('data-robokj-processed', 'true');
         try {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {

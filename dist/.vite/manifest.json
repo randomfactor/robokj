@@ -5,25 +5,39 @@
     "src": "../../../../../@crx/manifest",
     "isEntry": true
   },
+  "_index-Dob3nYDb.js": {
+    "file": "assets/index-Dob3nYDb.js",
+    "name": "index"
+  },
+  "_index.ts-loader-CM3wKTRd.js": {
+    "file": "assets/index.ts-loader-CM3wKTRd.js",
+    "src": "_index.ts-loader-CM3wKTRd.js"
+  },
   "src/background/index.ts": {
-    "file": "assets/index.ts-CNTBdkmk.js",
+    "file": "assets/index.ts-2H5fJObO.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_index-Dob3nYDb.js"
+    ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-gfv8YGJu.js",
+    "file": "assets/index.ts-DAQiGsrt.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_index-Dob3nYDb.js"
+    ]
   },
   "src/popup/index.html": {
-    "file": "assets/index.html-DkaIszp5.js",
+    "file": "assets/index.html-B1XTa7Un.js",
     "name": "index.html",
     "src": "src/popup/index.html",
     "isEntry": true,
     "css": [
-      "assets/index-BK1X_DCP.css"
+      "assets/index-D2gfiACy.css"
     ]
   }
 }

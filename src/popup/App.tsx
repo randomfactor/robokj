@@ -1,6 +1,29 @@
 import { useState, useEffect } from 'react';
 import ListItem from '../components/ListItem';
 
+function formatUTCToLocalDateTimeInput(utcISOString?: string): string {
+    if (!utcISOString) return '';
+
+    const date = new Date(utcISOString);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const pad2 = (value: number) => String(value).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad2(date.getMonth() + 1);
+    const day = pad2(date.getDate());
+    const hours = pad2(date.getHours());
+    const minutes = pad2(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function parseLocalDateTimeInputToUTC(localDateTime: string): string {
+    if (!localDateTime) return '';
+
+    const date = new Date(localDateTime);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
 function App() {
     const [inviteLink, setInviteLink] = useState('');
     const [showInfo, setShowInfo] = useState({
@@ -214,11 +237,11 @@ function App() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs mb-1 text-[#a6adc8]">Start Time (UTC)</label>
+                                <label className="block text-xs mb-1 text-[#a6adc8]">Start Time (Local)</label>
                                 <input
                                     type="datetime-local"
-                                    value={showInfo.startTimeUTC ? showInfo.startTimeUTC.slice(0, 16) : ''}
-                                    onChange={(e) => setShowInfo({ ...showInfo, startTimeUTC: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                                    value={formatUTCToLocalDateTimeInput(showInfo.startTimeUTC)}
+                                    onChange={(e) => setShowInfo({ ...showInfo, startTimeUTC: parseLocalDateTimeInputToUTC(e.target.value) })}
                                     className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all [color-scheme:dark]"
                                 />
                             </div>

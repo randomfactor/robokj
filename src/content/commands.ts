@@ -59,11 +59,18 @@ function buildFallbackMessageFingerprint(element: Element, messageText: string):
     return `fp:${w2gId}|${messageText.trim()}|${timeToken}|${prevText}|${nextText}`;
 }
 
+function getSenderW2gId(element: Element): string {
+    return element.querySelector('.overflow-clip')?.textContent?.trim() || 'unknown';
+}
+
 function hasRecentlyProcessedMessage(element: Element, messageText: string): boolean {
     const now = Date.now();
     cleanupRecentMessageKeys(now);
 
-    const messageKey = getPreferredDomMessageId(element) || buildFallbackMessageFingerprint(element, messageText);
+    // Treat command identity as sender + exact text first, then augment with stable DOM id/fingerprint.
+    const senderScopedKey = `cmd:${getSenderW2gId(element)}|${messageText}`;
+    const structuralKey = getPreferredDomMessageId(element) || buildFallbackMessageFingerprint(element, messageText);
+    const messageKey = `${senderScopedKey}|${structuralKey}`;
     const previousTs = recentMessageKeys.get(messageKey);
 
     if (previousTs && now - previousTs <= RECENT_MESSAGE_TTL_MS) {

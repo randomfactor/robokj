@@ -1,0 +1,55 @@
+This is a quick instructional video for how to use Watch Together with Robo KJ.
+----
+When you first visit the link to Robo KJ's Watch Together session,
+you do not need to log in. You can opt out of everything.
+Then you'll be asked to pick a nickname.
+----
+The first thing you will want to do when you join the room
+is to open the quote bubbles so that you can type commands to Robo KJ.
+----
+When you first enter the room, you are not registered. First command is to register a stage name. It is
+best to use the same name of your user in the Zoom window. To register, you type the command
+slash register and follow it with your singer name.
+----
+I'm going to put in Chad.
+----
+Robo KJ tells me that Chad has been added to the roster. At this point, you can make requests the way you would
+normally make requests for videos in watch together. So, I have some links that I have already validated.
+----
+When I paste those into the chat window in watch together, Robo KJ tells me that a request has been added to the
+queue for Chad.
+----
+I'm going to add a couple more. You can only put in a maximum of five at a time.
+----
+Robo KJ will start your video when it's your turn to sing.
+----
+You can use the Zoom window, unmute your microphone, and sing along with the song. Always remember to mute your
+microphone in Zoom when you've finished singing your song.
+----
+There are some additional commands that I can give to Robo KJ.
+The slash Q command will show songs that are lined up in my Q, Chad's Q.
+----
+There's a history command. Slash h i s t o r y.
+----
+If I wanted to delete all of the songs remaining in my queue because I've changed my mind, there's a delete Q command.
+Slash d e l q.
+----
+I can ask for a restart for the video with slash r e s t a r t. This will only succeed in the first 30 seconds
+of your video.
+----
+To avoid hogging the stage by any one user, the video will be timed out if it's longer than 4 minutes and 30
+seconds. Check your videos beforehand so that you don't get an unpleasant surprise.
+----
+If Robo KJ encounters the dreaded extension needed screen, it becomes the next singer's turn. The singer with the
+faulty video URL will be bumped down the roster. If there is another song in that singer's request
+queue, it will play.
+----
+Robo KJ will send
+messages at the end of each video to let you know who is on stage, who is up next, and who is after that.
+----
+Muting and unmuting in the Zoom session is the responsibility of the singers. Take care that your
+microphone isn't ruining another singer's performance.
+----
+Use the chat window or your own microphone to remind others when their microphone should be muted.
+----
+Be kind and humble. We all make mistakes. Okay, enjoy your show.

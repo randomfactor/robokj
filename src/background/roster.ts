@@ -249,17 +249,15 @@ export async function handleNextSinger(service: BackgroundService, sendResponse:
 
         if (!roster) {
             service.broadcastMessage('There are no active singers in the roster.');
-            if (state.mode === 'auto') {
-                state.awaitingAutoResume = true;
-                await setKState(state);
-            }
+            state.awaitingAutoResume = true;
+            await setKState(state);
             sendResponse({ success: false, error: 'No roster found' });
             return;
         }
 
         const isFirstSongOfShow = state.songsStarted === 0;
 
-        if (!isFirstSongOfShow) {
+        if (!isFirstSongOfShow && !state.awaitingAutoResume) {
             // Find current active singer index
             const currentIndex = roster.singers.findIndex(s => s.status === 'active');
 
@@ -308,10 +306,8 @@ export async function handleNextSinger(service: BackgroundService, sendResponse:
 
         if (!nextValidFound) {
             service.broadcastMessage('There are no active singers in the roster.');
-            if (state.mode === 'auto') {
-                state.awaitingAutoResume = true;
-                await setKState(state);
-            }
+            state.awaitingAutoResume = true;
+            await setKState(state);
             sendResponse({ success: false, error: 'No active singers left with songs in their queue.' });
             return;
         }

@@ -267,6 +267,16 @@ export class BackgroundService {
                 await seedTestData(this);
             }
 
+            if (chrome && chrome.tabs && chrome.tabs.query) {
+                chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
+                    tabs.forEach(t => {
+                        if (t.id) {
+                            chrome.tabs.sendMessage(t.id, { type: 'RESET_TOKEN_COUNTER' }).catch(() => { });
+                        }
+                    });
+                });
+            }
+
             this.broadcastMessage('The database has been cleared.');
 
             sendResponse({ success: true });

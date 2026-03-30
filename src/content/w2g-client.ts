@@ -43,6 +43,16 @@ async function nextOutboundToken(): Promise<string> {
     }
 }
 
+export async function resetOutboundToken(): Promise<void> {
+    try {
+        const db = await getContentDb();
+        await db.put('KCurrentState', { sendCounter: 0 }, 'counter');
+        console.log('RoboKJ: Token counter reset to 0 in IndexedDB.');
+    } catch (error) {
+        console.warn('RoboKJ: Failed to reset token counter.', error);
+    }
+}
+
 async function emitMessage(message: string): Promise<void> {
     const chatInput = document.getElementById('w2g-chat-input') as HTMLInputElement | HTMLTextAreaElement | null;
     if (!chatInput) {

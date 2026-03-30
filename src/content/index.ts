@@ -1,6 +1,6 @@
 import { startObservingChat } from './chat-observer';
 import { initVideoListeners } from './video-listener';
-import { sendToAll } from './w2g-client';
+import { sendToAll, resetOutboundToken } from './w2g-client';
 
 console.log('RoboKJ: Content script loaded. Initializing...');
 
@@ -39,6 +39,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
         if (message.type === 'BROADCAST_MESSAGE') {
             const { text } = message.payload;
             if (text) sendToAll(text);
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (message.type === 'RESET_TOKEN_COUNTER') {
+            resetOutboundToken();
             sendResponse({ success: true });
             return true;
         }

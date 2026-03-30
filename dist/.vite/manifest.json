@@ -9,12 +9,12 @@
     "file": "assets/index-Dob3nYDb.js",
     "name": "index"
   },
-  "_index.ts-loader-COjg08Yt.js": {
-    "file": "assets/index.ts-loader-COjg08Yt.js",
-    "src": "_index.ts-loader-COjg08Yt.js"
+  "_index.ts-loader-D-OKs6k4.js": {
+    "file": "assets/index.ts-loader-D-OKs6k4.js",
+    "src": "_index.ts-loader-D-OKs6k4.js"
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-BC_HRCKG.js",
+    "file": "assets/index.ts-Cq4Lv9Hn.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-DHzgX6Hy.js",
+    "file": "assets/index.ts-Bs0OhrFG.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true,

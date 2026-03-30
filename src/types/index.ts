@@ -69,7 +69,8 @@ export type MessageAction =
     | { type: 'VIDEO_STARTED' }
     | { type: 'VIDEO_ERROR'; payload: { errorCode: number } }
     | { type: 'TOGGLE_MODE' }
-    | { type: 'GET_STATE' };
+    | { type: 'GET_STATE' }
+    | { type: 'RESET_TOKEN_COUNTER' };
 
 export interface MessageResponse {
     success: boolean

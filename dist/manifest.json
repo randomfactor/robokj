@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/index.ts-loader-BHsV-TJM.js"
+        "assets/index.ts-loader-COjg08Yt.js"
       ],
       "matches": [
         "https://w2g.tv/en/room/*",
@@ -43,7 +43,7 @@
       ],
       "resources": [
         "assets/index-Dob3nYDb.js",
-        "assets/index.ts-COE6QeMp.js"
+        "assets/index.ts-DHzgX6Hy.js"
       ],
       "use_dynamic_url": false
     }

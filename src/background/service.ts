@@ -16,7 +16,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = true;
+        this.seedTestData = false;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {
@@ -380,7 +380,7 @@ export class BackgroundService {
             const state = await getKState() || { songsStarted: 0, mode: 'manual' as 'auto' | 'manual' };
             const previousMode = state.mode || 'manual';
             state.mode = state.mode === 'auto' ? 'manual' : 'auto';
-            
+
             if (state.mode === 'manual') {
                 this.clearSongTimeout();
                 this.clearShowStartTimer();

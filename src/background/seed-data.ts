@@ -3,7 +3,7 @@ import { handleRegisterSinger } from './roster';
 import { handleAddSongRequest } from './requests';
 import { BackgroundService } from './service';
 
-const SEED_SET_INDEX: 0 | 1 | 2 = 2;
+const SEED_SET_INDEX: 0 | 1 | 2 = 1;
 
 type SeedSinger = { w2gId: string; stageName: string };
 type SeedRequest = { w2gId: string; title: string; url: string };
@@ -15,7 +15,7 @@ interface SeedSet {
 }
 
 const SEED_SETS: Record<0 | 1 | 2, SeedSet> = {
-    // Set 0: uses default song duration and default show duration (4 hours).
+    // Set 0: minimal
     0: {
         show: {
             venueName: 'Mini Seed Dev3',
@@ -29,7 +29,7 @@ const SEED_SETS: Record<0 | 1 | 2, SeedSet> = {
         ]
     },
 
-    // Set 1: exactly the current data definitions.
+    // Set 1: short test.
     1: {
         show: {
             venueName: 'Seed Dev3',
@@ -39,26 +39,26 @@ const SEED_SETS: Record<0 | 1 | 2, SeedSet> = {
         },
         singers: [
             { w2gId: 'admin', stageName: 'RoboKJ' },
-            { w2gId: 'User-RJMHU', stageName: 'Brad' },
-            { w2gId: 'User-KQAZU', stageName: 'Chad' }
+            { w2gId: 'User-TEST0', stageName: 'Brad' },
+            { w2gId: 'User-TEST1', stageName: 'Chad' }
         ],
         requests: [
             { w2gId: 'admin', title: 'RoboKJ Instructions', url: 'https://youtu.be/MEbs-gGfD2I' },
             { w2gId: 'admin', title: 'Countdown Master', url: 'https://youtu.be/OStsxpT-Y1M' },
-            { w2gId: 'User-RJMHU', title: 'Let It Be Unplayable', url: 'https://www.youtube.com/watch?v=KSRDIB1BQ08' },
-            { w2gId: 'User-RJMHU', title: 'Countdown 11', url: 'https://youtu.be/IG_ThYspaJA' },
-            { w2gId: 'User-RJMHU', title: 'Countdown 08', url: 'https://youtu.be/3XOQjkNyoIg' },
-            { w2gId: 'User-RJMHU', title: 'Burning For You', url: 'https://www.youtube.com/watch?v=8v3t_L2aw64' },
-            { w2gId: 'User-RJMHU', title: 'Don\'t Fear The Reaper', url: 'https://www.youtube.com/watch?v=-f_w4ZAYk3E' },
-            { w2gId: 'User-KQAZU', title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' },
-            { w2gId: 'User-KQAZU', title: 'Countdown 12', url: 'https://youtu.be/5ymwMWajK0k' },
-            { w2gId: 'User-KQAZU', title: 'Dizz Knee Land', url: 'https://www.youtube.com/watch?v=WpS67Qjialc' },
-            { w2gId: 'User-KQAZU', title: 'Godzilla', url: 'https://www.youtube.com/watch?v=boAQkZnXoKA' },
-            { w2gId: 'User-KQAZU', title: 'Joan Crawford', url: 'https://www.youtube.com/watch?v=6U47UrFXN20' }
+            { w2gId: 'User-TEST0', title: 'Let It Be Unplayable', url: 'https://www.youtube.com/watch?v=KSRDIB1BQ08' },
+            { w2gId: 'User-TEST0', title: 'Countdown 11', url: 'https://youtu.be/IG_ThYspaJA' },
+            { w2gId: 'User-TEST0', title: 'Countdown 08', url: 'https://youtu.be/3XOQjkNyoIg' },
+            { w2gId: 'User-TEST0', title: 'Burning For You', url: 'https://www.youtube.com/watch?v=8v3t_L2aw64' },
+            { w2gId: 'User-TEST0', title: 'Don\'t Fear The Reaper', url: 'https://www.youtube.com/watch?v=-f_w4ZAYk3E' },
+            { w2gId: 'User-TEST1', title: 'Countdown 09', url: 'https://youtu.be/Lg7OimPUjt8' },
+            { w2gId: 'User-TEST1', title: 'Countdown 12', url: 'https://youtu.be/5ymwMWajK0k' },
+            { w2gId: 'User-TEST1', title: 'Dizz Knee Land', url: 'https://www.youtube.com/watch?v=WpS67Qjialc' },
+            { w2gId: 'User-TEST1', title: 'Godzilla', url: 'https://www.youtube.com/watch?v=boAQkZnXoKA' },
+            { w2gId: 'User-TEST1', title: 'Joan Crawford', url: 'https://www.youtube.com/watch?v=6U47UrFXN20' }
         ]
     },
 
-    // Set 2: intentionally empty placeholders.
+    // Set 2: long test.
     2: {
         show: {
             venueName: 'Long Seed Dev3',

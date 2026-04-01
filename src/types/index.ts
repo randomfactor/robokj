@@ -70,7 +70,8 @@ export type MessageAction =
     | { type: 'VIDEO_ERROR'; payload: { errorCode: number } }
     | { type: 'TOGGLE_MODE' }
     | { type: 'GET_STATE' }
-    | { type: 'RESET_TOKEN_COUNTER' };
+    | { type: 'RESET_TOKEN_COUNTER' }
+    | { type: 'CHECK_SINGER_ACTIVE'; payload: { w2gId: string } };
 
 export interface MessageResponse {
     success: boolean

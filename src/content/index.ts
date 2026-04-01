@@ -48,5 +48,33 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
             sendResponse({ success: true });
             return true;
         }
+
+        if (message.type === 'CHECK_SINGER_ACTIVE') {
+            const { w2gId } = message.payload;
+            let isActive = true;
+
+            try {
+                const usersContainer = document.querySelector('.w2g-users');
+                if (usersContainer) {
+                    const userDiv = Array.from(usersContainer.querySelectorAll('div')).find(
+                        d => d.getAttribute('title') === w2gId || d.textContent?.trim() === w2gId
+                    );
+
+                    if (userDiv) {
+                        const className = userDiv.className || '';
+                        if (className.includes('bg-gray-')) {
+                            isActive = false;
+                        } else if (className.includes('bg-green-')) {
+                            isActive = true;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('RoboKJ: Failed to parse user DOM', err);
+            }
+
+            sendResponse({ success: true, active: isActive });
+            return true;
+        }
     });
 }

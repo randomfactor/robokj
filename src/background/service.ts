@@ -16,7 +16,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = false;
+        this.seedTestData = true;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {
@@ -294,6 +294,60 @@ export class BackgroundService {
             if (state.mode === 'manual') {
                 console.log('RoboKJ: Manual mode enabled. Ignoring VIDEO_STARTED.');
                 sendResponse({ success: true, data: 'Manual mode enabled. Ignoring.' });
+                return;
+            }
+
+            // Check if active singer is still in the room
+            const roster = await getKRoster();
+            const activeSinger = roster?.singers.find(s => s.status === 'active');
+            let isSingerActive = true;
+
+            if (activeSinger && chrome && chrome.tabs && chrome.tabs.query) {
+                const w2gId = activeSinger.singer.w2gId;
+
+                if (w2gId === 'admin' || w2gId === 'RoboKJ' || w2gId.includes('User-TEST')) {
+                    console.log(`RoboKJ: Bypassing CHECK_SINGER_ACTIVE check for test user: ${w2gId}`);
+                } else {
+                    await new Promise<void>((resolve) => {
+                        chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
+                            let checked = 0;
+                            if (!tabs || tabs.length === 0) {
+                                resolve();
+                                return;
+                            }
+                            for (const t of tabs) {
+                                if (t.id) {
+                                    chrome.tabs.sendMessage(t.id, {
+                                        type: 'CHECK_SINGER_ACTIVE',
+                                        payload: { w2gId }
+                                    }, (response) => {
+                                        // Handle missing content script silently
+                                        if (chrome.runtime.lastError) {
+                                            // Ignore
+                                        }
+                                        if (response && response.active !== undefined) {
+                                            console.log(`RoboKJ: CHECK_SINGER_ACTIVE returned active=${response.active} for w2gId ${w2gId}`);
+                                            if (response.active === false) {
+                                                isSingerActive = false;
+                                            }
+                                        }
+                                        checked++;
+                                        if (checked === tabs.length) resolve();
+                                    });
+                                } else {
+                                    checked++;
+                                    if (checked === tabs.length) resolve();
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+
+            if (!isSingerActive) {
+                console.log('RoboKJ: Active singer is not in the room. Invoking Next Singer...');
+                await handleNextSinger(this, () => { });
+                sendResponse({ success: true, data: 'Singer left room. Next Singer invoked.' });
                 return;
             }
 

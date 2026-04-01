@@ -157,6 +157,28 @@ export async function playCurrentSong(roster: KRoster, sendResponse: (response: 
 
     const currentSong = requests.requests[requests.nextIndex];
 
+    const activeSingers = roster.singers.filter(s => s.status === 'active');
+    const announce = {
+        onStage: activeSingers[0]?.singer.stageName,
+        onStageSong: currentSong?.title,
+        nextUp: activeSingers[1]?.singer.stageName,
+        afterThat: activeSingers[2]?.singer.stageName
+    };
+
+    // Safely push announcement to any active W2G tabs directly from the background service
+    if (announceSingers && chrome && chrome.tabs && chrome.tabs.query) {
+        chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
+            tabs.forEach(t => {
+                if (t.id) {
+                    chrome.tabs.sendMessage(t.id, {
+                        type: 'ANNOUNCE_SINGERS',
+                        payload: announce
+                    }).catch(() => { });
+                }
+            });
+        });
+    }
+
     // Play the video via W2G API
     try {
         const show = await getKShow();
@@ -195,28 +217,6 @@ export async function playCurrentSong(roster: KRoster, sendResponse: (response: 
         const text = await res.text();
         const data = text ? JSON.parse(text) : { success: true };
         console.log(`RoboKJ: Successfully played song for ${stageName} via W2G API!`, data);
-
-        const activeSingers = roster.singers.filter(s => s.status === 'active');
-        const announce = {
-            onStage: activeSingers[0]?.singer.stageName,
-            onStageSong: currentSong?.title,
-            nextUp: activeSingers[1]?.singer.stageName,
-            afterThat: activeSingers[2]?.singer.stageName
-        };
-
-        // Safely push announcement to any active W2G tabs directly from the background service
-        if (announceSingers && chrome && chrome.tabs && chrome.tabs.query) {
-            chrome.tabs.query({ url: "*://*.w2g.tv/*" }, (tabs) => {
-                tabs.forEach(t => {
-                    if (t.id) {
-                        chrome.tabs.sendMessage(t.id, {
-                            type: 'ANNOUNCE_SINGERS',
-                            payload: announce
-                        }).catch(() => { });
-                    }
-                });
-            });
-        }
 
         sendResponse({ success: true, data: announce });
     } catch (error: any) {

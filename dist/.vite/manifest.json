@@ -9,12 +9,12 @@
     "file": "assets/index-Dob3nYDb.js",
     "name": "index"
   },
-  "_index.ts-loader-D-OKs6k4.js": {
-    "file": "assets/index.ts-loader-D-OKs6k4.js",
-    "src": "_index.ts-loader-D-OKs6k4.js"
+  "_index.ts-loader-CWJZdIYX.js": {
+    "file": "assets/index.ts-loader-CWJZdIYX.js",
+    "src": "_index.ts-loader-CWJZdIYX.js"
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-CC9sTs3E.js",
+    "file": "assets/index.ts-BWZSqRyf.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-Bs0OhrFG.js",
+    "file": "assets/index.ts-DOj5hVqH.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true,
@@ -32,12 +32,12 @@
     ]
   },
   "src/popup/index.html": {
-    "file": "assets/index.html-CNNQ1JVE.js",
+    "file": "assets/index.html-BguRjGqL.js",
     "name": "index.html",
     "src": "src/popup/index.html",
     "isEntry": true,
     "css": [
-      "assets/index-CGe70nbW.css"
+      "assets/index-CzJSskNT.css"
     ]
   }
 }

@@ -42,6 +42,13 @@
 
 - No commands should be recognized or processed until the KJ sets the show info (including the stream key).
 
+## Absent Singers
 
-
-
+- If a singer leaves the w2g room (their user rendering goes inactive/gray), they are considered absent.
+- If an absent singer is at the top of the roster when a song starts, the system will automatically invoke the "Next Singer" action instead of starting the song timeout. As a normal consequence, one song is consumed/removed from that absent singer's queue.
+- If an absent singer's queue becomes fully empty due to these rotations, their status degrades to `ignored` just like any regular empty queue.
+- When an absent singer eventually returns to the room:
+  - If their status is still `active` (they had enough pending songs to survive their absence), no special action is needed.
+  - If their status degraded to `ignored` while they were gone, they will remain safely ignored and will not be called up.
+  - However, if an `ignored` returning singer submits a new song request to the chat, the system will instantly reactivate them (`active`) and pull them back into the active rotation at the bottom of the roster.
+  - Note that issuing lookup commands like `/q` or `/history` will succeed but will *not* reactivate an ignored singer—only a fresh song request will trigger reactivation.

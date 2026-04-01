@@ -3,7 +3,7 @@ import { handleRegisterSinger } from './roster';
 import { handleAddSongRequest } from './requests';
 import { BackgroundService } from './service';
 
-const SEED_SET_INDEX: 0 | 1 | 2 = 1;
+const SEED_SET_INDEX: 0 | 1 | 2 = 2;
 
 type SeedSinger = { w2gId: string; stageName: string };
 type SeedRequest = { w2gId: string; title: string; url: string };

@@ -362,13 +362,15 @@ export class BackgroundService {
             state.awaitingAutoResume = false;
             await setKState(state);
 
+            // Clear any previously existing timeouts first
+            this.clearSongTimeout();
+
             if (typeof chrome !== 'undefined' && chrome.alarms) {
                 chrome.alarms.create('song_timeout', { delayInMinutes: activeTimeout / 60 });
                 console.log(`RoboKJ: Set song timeout alarm for ${activeTimeout} seconds.`);
             }
 
             // Fallback accurate tracking for sub-minute testing windows (where MV3 Alarms fail)
-            this.clearSongTimeout();
             this._fallbackTimeoutId = setTimeout(() => this.checkTimeoutAndRotate(), activeTimeout * 1000);
 
             sendResponse({ success: true });

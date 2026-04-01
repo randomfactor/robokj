@@ -50,24 +50,35 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
         }
 
         if (message.type === 'CHECK_SINGER_ACTIVE') {
+            // Prevent iframes (e.g. the video player) from intercepting and returning fake data
+            if (window.self !== window.top) return false;
+
             const { w2gId } = message.payload;
             let isActive = true;
 
             try {
-                const usersContainer = document.querySelector('.w2g-users');
+                const usersContainer = document.querySelector('.bg-w2g-dark-userlist.bottom-0.flex, .bg-w2g-light-userlist.bottom-0.flex');
                 if (usersContainer) {
                     const userDiv = Array.from(usersContainer.querySelectorAll('div')).find(
                         d => d.getAttribute('title') === w2gId || d.textContent?.trim() === w2gId
                     );
+                    
+                    console.log(`RoboKJ: CHECK_SINGER_ACTIVE for w2gId='${w2gId}' - userDiv found: ${!!userDiv}`);
 
                     if (userDiv) {
-                        const className = userDiv.className || '';
-                        if (className.includes('bg-gray-')) {
+                        const classArray = Array.from(userDiv.classList);
+                        console.log(`RoboKJ: CHECK_SINGER_ACTIVE w2gId='${w2gId}' - classArray:`, classArray);
+                        
+                        if (classArray.some(c => c.startsWith('bg-gray-'))) {
                             isActive = false;
-                        } else if (className.includes('bg-green-')) {
+                        } else if (classArray.some(c => c.startsWith('bg-green-'))) {
                             isActive = true;
                         }
+                        
+                        console.log(`RoboKJ: CHECK_SINGER_ACTIVE w2gId='${w2gId}' - determined isActive=${isActive}`);
                     }
+                } else {
+                    console.warn(`RoboKJ: CHECK_SINGER_ACTIVE - Userlist container NOT found in DOM!`);
                 }
             } catch (err) {
                 console.error('RoboKJ: Failed to parse user DOM', err);

@@ -16,7 +16,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = true;
+        this.seedTestData = false;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {

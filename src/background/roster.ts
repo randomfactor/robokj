@@ -495,3 +495,51 @@ export async function handleRestartVideo(service: BackgroundService, w2gId: stri
         sendResponse({ success: false, error: 'Database error' });
     }
 }
+
+export async function handleGetPosition(w2gId: string, sendResponse: (response: MessageResponse) => void) {
+    try {
+        const roster = await getKRoster();
+        if (!roster) {
+            sendResponse({ success: false, error: 'No roster found' });
+            return;
+        }
+
+        const activeSingers = roster.singers.filter(s => s.status === 'active');
+        const index = activeSingers.findIndex(s => s.singer.w2gId === w2gId);
+        
+        if (index === -1) {
+            const singerStatus = roster.singers.find(s => s.singer.w2gId === w2gId);
+            if (singerStatus) {
+                sendResponse({ success: true, data: { message: `${singerStatus.singer.stageName} is currently not active in the roster.` } });
+            } else {
+                sendResponse({ success: false, error: `You are not currently in the roster.` });
+            }
+            return;
+        }
+
+        const stageName = activeSingers[index].singer.stageName;
+        let message = '';
+        
+        if (index === 0) {
+            message = `${stageName} is singing now`;
+        } else if (index === 1) {
+            message = `${stageName} is next`;
+        } else {
+            const j = index % 10, k = index % 100;
+            let suffix = "th";
+            if (j == 1 && k != 11) {
+                suffix = "st";
+            } else if (j == 2 && k != 12) {
+                suffix = "nd";
+            } else if (j == 3 && k != 13) {
+                suffix = "rd";
+            }
+            message = `${stageName} is ${index}${suffix}`;
+        }
+
+        sendResponse({ success: true, data: { message } });
+    } catch (error) {
+        console.error(`RoboKJ: Database error during GET_POSITION:`, error);
+        sendResponse({ success: false, error: 'Database error' });
+    }
+}

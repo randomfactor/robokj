@@ -69,6 +69,14 @@ export function parseMessageElement(element: Element): ParsedCommand | null {
         };
     }
 
+    if (messageText.trim() === '/pos') {
+        return {
+            action: { type: 'GET_POSITION', w2gId },
+            w2gId,
+            rawText: messageText
+        };
+    }
+
     if (messageText.trim() === '/restart') {
         return {
             action: { type: 'RESTART_VIDEO', payload: { w2gId, fromChat: true } },
@@ -134,6 +142,7 @@ export function handleActionResponse(parsed: ParsedCommand, response: any): void
             '"/q" : view request queue',
             '"/history" : view past songs',
             '"/delq" : delete songs in q',
+            '"/pos" : view roster position',
             `"/restart" : restart video (lose ${penaltySeconds}s)`,
             '"/help" : view this message'
         ];
@@ -190,6 +199,12 @@ export function handleActionResponse(parsed: ParsedCommand, response: any): void
     } else if (action.type === 'DELETE_QUEUE_FOR_USER') {
         if (response && response.success && response.data) {
             sendToAll(`@${response.data.stageName}, your pending queue has been cleared!`);
+        }
+    } else if (action.type === 'GET_POSITION') {
+        if (response && response.success && response.data) {
+            sendToAll(response.data.message);
+        } else if (response && !response.success && response.error) {
+            sendToAll(response.error);
         }
     } else if (action.type === 'RESTART_VIDEO') {
         if (response && !response.success && response.error) {

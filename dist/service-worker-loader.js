@@ -1,1 +1,1 @@
-import './assets/index.ts-DVDQUAd5.js';
+import './assets/index.ts-Bu72W_3U.js';

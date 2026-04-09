@@ -2,7 +2,7 @@ import { MessageAction, MessageResponse } from '../types';
 import { getKRoster, getKSongRequests, setKSongRequests, getKShow, setKShow, clearAllData, getKState, setKState } from './db';
 import { seedTestData } from './seed-data';
 import { handleAddSongRequest, handleGetRequestList, handleGetQueueForUser, handleDeleteQueueForUser } from './requests';
-import { handleGetRoster, handleRegisterSinger, handleRemoveSinger, handleReactivateSinger, handleNextSinger, handleBumpSinger, handleRestartVideo } from './roster';
+import { handleGetRoster, handleRegisterSinger, handleRemoveSinger, handleReactivateSinger, handleNextSinger, handleBumpSinger, handleRestartVideo, handleGetPosition } from './roster';
 
 export interface BackgroundServiceOptions {
     onMessageProcessed?: (message: MessageAction, response: MessageResponse) => void;
@@ -16,7 +16,7 @@ export class BackgroundService {
 
     constructor(options: BackgroundServiceOptions = {}) {
         this.options = options;
-        this.seedTestData = false;
+        this.seedTestData = true;
 
         if (typeof chrome !== 'undefined' && chrome.alarms) {
             chrome.alarms.onAlarm.addListener((alarm) => {
@@ -225,6 +225,11 @@ export class BackgroundService {
             return true;
         }
 
+        if (message.type === 'GET_POSITION') {
+            handleGetPosition(message.w2gId, respond);
+            return true;
+        }
+
         return true;
     }
 
@@ -384,8 +389,15 @@ export class BackgroundService {
         try {
             const state = await getKState() || { mode: 'manual', songsStarted: 0 };
             if (state.mode === 'auto') {
-                console.log('RoboKJ: Auto mode enabled. Triggering next singer automatically on video end.');
-                await handleNextSinger(this, sendResponse);
+                if (state.playingErrorVideo) {
+                    console.log('RoboKJ: Error video ended. Now actually bumping the singer.');
+                    state.playingErrorVideo = false;
+                    await setKState(state);
+                    await handleBumpSinger(this, sendResponse);
+                } else {
+                    console.log('RoboKJ: Auto mode enabled. Triggering next singer automatically on video end.');
+                    await handleNextSinger(this, sendResponse);
+                }
             } else {
                 console.log('RoboKJ: Received VIDEO_ENDED, but mode is not auto. Ignoring.');
                 sendResponse({ success: true, data: 'Auto mode disabled. No action taken.' });
@@ -401,14 +413,24 @@ export class BackgroundService {
             console.warn(`RoboKJ: Received VIDEO_ERROR (${errorCode}) from content script.`);
             const state = await getKState() || { mode: 'manual', songsStarted: 0 };
             if (state.mode === 'auto') {
+                if (state.playingErrorVideo) {
+                    // The error video itself failed. Just clear the flag and bump to prevent getting stuck.
+                    console.warn('RoboKJ: Error video failed to play. Immediate bump.');
+                    state.playingErrorVideo = false;
+                    await setKState(state);
+                    await handleBumpSinger(this, sendResponse);
+                    return;
+                }
+
                 console.log('RoboKJ: Auto mode enabled. Unplayable video detected. Auto-bumping singer.');
 
                 // Remove the unplayable song request from the active singer's queue
                 const roster = await getKRoster();
+                let stageName = '';
                 if (roster) {
                     const activeSingerStatus = roster.singers.find(s => s.status === 'active');
                     if (activeSingerStatus) {
-                        const stageName = activeSingerStatus.singer.stageName;
+                        stageName = activeSingerStatus.singer.stageName;
                         const requests = await getKSongRequests(stageName);
                         if (requests && requests.nextIndex < requests.requests.length) {
                             // Splice deletes the unplayable song, smoothly shifting their queue
@@ -419,8 +441,42 @@ export class BackgroundService {
                     }
                 }
 
-                // Bump the singer
-                await handleBumpSinger(this, sendResponse);
+                this.broadcastMessage(`Cannot play video for ${stageName}`);
+
+                state.playingErrorVideo = true;
+                state.currentSongTimeoutDurationMs = 0; // stop normal timeouts while playing the short clip
+                this.clearSongTimeout();
+                await setKState(state);
+
+                const show = await getKShow();
+                const streamKey = show?.streamKey;
+                const apiKey = import.meta.env.VITE_W2G_API_KEY;
+                if (!streamKey || !apiKey) {
+                    console.warn("RoboKJ: Missing streamKey or API key for error video.");
+                    // fallback if we can't play it
+                    state.playingErrorVideo = false;
+                    await setKState(state);
+                    await handleBumpSinger(this, sendResponse);
+                    return;
+                }
+
+                const apiUrl = `https://api.w2g.tv/rooms/${streamKey}/sync_update`;
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ w2g_api_key: apiKey, item_url: "https://youtu.be/U5K8AOQDFa0" })
+                });
+
+                if (!res.ok) {
+                    // The API call failed. Bummer. Fallback to normal behavior.
+                    state.playingErrorVideo = false;
+                    await setKState(state);
+                    await handleBumpSinger(this, sendResponse);
+                    return;
+                }
+
+                console.log(`RoboKJ: Playing error video...`);
+                sendResponse({ success: true, data: "Playing error video instead of bumping immediately." });
             } else {
                 console.log('RoboKJ: Received VIDEO_ERROR, but mode is not auto. Ignoring.');
                 sendResponse({ success: true, data: 'Auto mode disabled. No action taken.' });

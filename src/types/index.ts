@@ -44,6 +44,7 @@ export interface KState {
     currentSongTimeoutDurationMs?: number
     currentSongRestartsUsed?: number
     awaitingAutoResume?: boolean
+    playingErrorVideo?: boolean
 }
 
 // --- Message Types ---
@@ -62,6 +63,7 @@ export type MessageAction =
     | { type: 'REACTIVATE_SINGER'; stageName: string }
     | { type: 'NEXT_SINGER' }
     | { type: 'BUMP_SINGER' }
+    | { type: 'GET_POSITION'; w2gId: string }
     | { type: 'RESTART_VIDEO'; payload?: { w2gId?: string, fromChat?: boolean } }
     | { type: 'SELF_DESTRUCT' }
     | { type: 'BROADCAST_MESSAGE'; payload: { text: string } }

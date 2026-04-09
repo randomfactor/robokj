@@ -9,12 +9,12 @@
     "file": "assets/index-Dob3nYDb.js",
     "name": "index"
   },
-  "_index.ts-loader-BLYDC_Qc.js": {
-    "file": "assets/index.ts-loader-BLYDC_Qc.js",
-    "src": "_index.ts-loader-BLYDC_Qc.js"
+  "_index.ts-loader-Dbh_tcgC.js": {
+    "file": "assets/index.ts-loader-Dbh_tcgC.js",
+    "src": "_index.ts-loader-Dbh_tcgC.js"
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-Bu72W_3U.js",
+    "file": "assets/index.ts-tYJcN5Tm.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-Dxm2E7Qu.js",
+    "file": "assets/index.ts-BrLtGdVq.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true,

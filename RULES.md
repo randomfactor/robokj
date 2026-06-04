@@ -6,7 +6,7 @@
 
 - If a singer attempts to request a link that has already been requested, the request fails, and RoboKJ should respond with a message to the w2g chat window indicating that the song has already been requested. **Note: Duplicate Prevention ensures no song is played twice in the same show. This applies even if the song was already performed in the past, or if it is currently pending in another singer's request list.**
 
-- The request list for a singer should not allow more than 5 unperformed songs in the list.
+- The request list for a singer should not allow more than the configured maximum number of unperformed songs in the list (configured via `maxSingerRequests` in the show info). This limit must be at least 1 and less than 100. If the value is not set in the database, the default limit should be 5.
 
 - When a singer successfully registers themselves, the singer should be added to the end of the current roster.
 

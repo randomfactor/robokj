@@ -31,7 +31,8 @@ function App() {
         startTimeUTC: '',
         durationInHours: 4,
         streamKey: '',
-        maxSongDurationSeconds: 270
+        maxSongDurationSeconds: 270,
+        maxSingerRequests: 5
     });
     const [mode, setMode] = useState<'auto' | 'manual'>('manual');
     const [showInfoStatus, setShowInfoStatus] = useState('');
@@ -162,7 +163,8 @@ function App() {
                         startTimeUTC: '',
                         durationInHours: 4,
                         streamKey: '',
-                        maxSongDurationSeconds: 270
+                        maxSongDurationSeconds: 270,
+                        maxSingerRequests: 5
                     });
                     setMode('manual');
                     setActiveSingers([]);
@@ -263,6 +265,17 @@ function App() {
                                         min="10"
                                         value={showInfo.maxSongDurationSeconds || 270}
                                         onChange={(e) => setShowInfo({ ...showInfo, maxSongDurationSeconds: parseInt(e.target.value) || 270 })}
+                                        className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs mb-1 text-[#a6adc8]">Max Requests</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        value={showInfo.maxSingerRequests ?? 5}
+                                        onChange={(e) => setShowInfo({ ...showInfo, maxSingerRequests: parseInt(e.target.value) || 5 })}
                                         className="w-full px-3 py-2 rounded-lg bg-[#313244] text-[#cdd6f4] border border-[#45475a] focus:outline-none focus:border-[#f9e2af] text-xs transition-all"
                                     />
                                 </div>

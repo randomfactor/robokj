@@ -134,11 +134,12 @@ export function handleActionResponse(parsed: ParsedCommand, response: any): void
         if (response && response.success && response.data && response.data.maxSongDurationSeconds) {
             penaltySeconds = Math.round((1.0 / 9.0) * response.data.maxSongDurationSeconds);
         }
+        const maxSingerRequests = (response && response.success && response.data && response.data.maxSingerRequests) || 5;
 
         const helpMessages = [
             '🤖 RoboKJ Commands:',
             '"/register <zoom-name>"',
-            '"<youtube link>" : add song to queue (max 5)',
+            `"<youtube link>" : add song to queue (max ${maxSingerRequests})`,
             '"/q" : view request queue',
             '"/history" : view past songs',
             '"/delq" : delete songs in q',
@@ -212,12 +213,12 @@ export function handleActionResponse(parsed: ParsedCommand, response: any): void
         }
     } else if (action.type === 'ADD_SONG_REQUEST') {
         if (response && response.success && response.data) {
-            const { stageName, count } = response.data;
+            const { stageName, count, limit } = response.data;
             console.log(`RoboKJ: Successfully added song request "${action.payload.title}" for ${w2gId}`);
-            sendToAll(`Request added to the queue for ${stageName} (${count}/5)`);
+            sendToAll(`Request added to the queue for ${stageName} (${count}/${limit || 5})`);
         } else if (response && !response.success) {
             if (response.error === 'limit_reached' && response.data) {
-                sendToAll(`Sorry ${response.data.stageName}, maximum 5 songs reached`);
+                sendToAll(`Sorry ${response.data.stageName}, maximum ${response.data.limit || 5} songs reached`);
             } else if (response.error === 'duplicate' && response.data) {
                 const { stageName, claimedBy } = response.data;
                 const claimMsg = stageName === claimedBy ? 'you' : claimedBy;

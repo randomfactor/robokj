@@ -9,12 +9,12 @@
     "file": "assets/index-Dob3nYDb.js",
     "name": "index"
   },
-  "_index.ts-loader-Dbh_tcgC.js": {
-    "file": "assets/index.ts-loader-Dbh_tcgC.js",
-    "src": "_index.ts-loader-Dbh_tcgC.js"
+  "_index.ts-loader-78mR0ncD.js": {
+    "file": "assets/index.ts-loader-78mR0ncD.js",
+    "src": "_index.ts-loader-78mR0ncD.js"
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-rspVPX-T.js",
+    "file": "assets/index.ts-DjQwnLV0.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-BrLtGdVq.js",
+    "file": "assets/index.ts-OOuQMRuI.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true,
@@ -32,7 +32,7 @@
     ]
   },
   "src/popup/index.html": {
-    "file": "assets/index.html-QoPwEPbj.js",
+    "file": "assets/index.html-6SdOytG0.js",
     "name": "index.html",
     "src": "src/popup/index.html",
     "isEntry": true,

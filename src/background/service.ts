@@ -245,6 +245,14 @@ export class BackgroundService {
 
     public async handleSetShowInfo(payload: Partial<import('../types').KShow>, sendResponse: (response: MessageResponse) => void) {
         try {
+            if (payload.maxSingerRequests !== undefined) {
+                const limit = Number(payload.maxSingerRequests);
+                if (Number.isNaN(limit) || !Number.isInteger(limit) || limit < 1 || limit >= 100) {
+                    sendResponse({ success: false, error: 'Max requests must be between 1 and 99.' });
+                    return;
+                }
+            }
+
             const currentShow = await getKShow() || {
                 venueName: '',
                 startTimeUTC: new Date().toISOString(),

@@ -34,6 +34,7 @@ export interface KShow {
     durationInHours: number
     streamKey: string
     maxSongDurationSeconds?: number
+    maxSingerRequests?: number
 }
 
 // IndexedDB key: "state"

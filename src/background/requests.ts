@@ -1,5 +1,5 @@
 import { MessageResponse, KRoster, KSongRequests } from '../types';
-import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKState } from './db';
+import { getKRoster, setKRoster, getKSongRequests, setKSongRequests, getKState, getKShow } from './db';
 import { handleNextSinger } from './roster';
 import type { BackgroundService } from './service';
 
@@ -99,9 +99,12 @@ export async function handleAddSongRequest(service: BackgroundService, w2gId: st
         // Calculate pending requests
         const pendingRequests = requests.requests.length - requests.nextIndex;
 
-        if (pendingRequests >= 5) {
-            console.warn(`RoboKJ: Singer ${stageName} has reached the 5 request limit.`);
-            sendResponse({ success: false, error: 'limit_reached', data: { stageName } });
+        const show = await getKShow();
+        const maxSingerRequests = show?.maxSingerRequests ?? 5;
+
+        if (pendingRequests >= maxSingerRequests) {
+            console.warn(`RoboKJ: Singer ${stageName} has reached the ${maxSingerRequests} request limit.`);
+            sendResponse({ success: false, error: 'limit_reached', data: { stageName, limit: maxSingerRequests } });
             return;
         }
 
@@ -130,7 +133,7 @@ export async function handleAddSongRequest(service: BackgroundService, w2gId: st
         console.log(`RoboKJ: Saved song request for ${stageName}. Pending requests: ${pendingRequests + 1}`);
 
         // Just return success. We no longer auto-play it here.
-        sendResponse({ success: true, data: { stageName, title: payload.title, count: pendingRequests + 1 } });
+        sendResponse({ success: true, data: { stageName, title: payload.title, count: pendingRequests + 1, limit: maxSingerRequests } });
 
         const state = await getKState();
         const noSongPlaying = !state?.currentSongStartTimeMs || !state?.currentSongTimeoutDurationMs;
